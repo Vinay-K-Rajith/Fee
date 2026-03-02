@@ -32,56 +32,59 @@
   --color-warning: hsl(var(--warning));
   --color-info: hsl(var(--info));
 
-  --font-sans: 'Inter', sans-serif;
+  --font-sans: 'Inter', 'Roboto', 'Open Sans', 'Source Sans Pro', sans-serif;
+  --font-roboto: 'Roboto', sans-serif;
+  --font-open-sans: 'Open Sans', sans-serif;
+  --font-source-sans: 'Source Sans Pro', sans-serif;
 }
 
 :root {
-  /* Cream background */
-  --background: 40 33% 98%;
+  /* Soft cool off-white background - #F4F7F9 */
+  --background: 206 33% 97%; 
   
-  /* Charcoal Gray text */
-  --foreground: 215 16% 25%;
+  /* Charcoal Gray Primary Text - #1E293B */
+  --foreground: 217 33% 17%;
   
-  /* Pure white cards */
+  /* Pure white cards - #FFFFFF */
   --card: 0 0% 100%;
-  --card-foreground: 215 16% 25%;
+  --card-foreground: 217 33% 17%;
   
-  /* Borders */
+  /* Borders - #E2E8F0 */
   --border: 214 32% 91%;
   
-  /* Primary Charcoal */
-  --primary: 215 16% 25%;
+  /* Primary Charcoal - #1E293B */
+  --primary: 217 33% 17%;
   --primary-foreground: 0 0% 100%;
   
-  /* Light Blue (Trust) */
-  --info: 210 100% 96%;
-  --info-foreground: 210 100% 40%;
+  /* Light Blue Background (Active States) - #EFF6FF */
+  --info: 210 100% 97%;
+  /* Light Blue Text - #3B82F6 */
+  --info-foreground: 217 91% 60%;
   
-  /* Sage Green (Health) */
-  --success: 152 75% 39%;
+  /* Sage Green (Health) - #10B981 */
+  --success: 161 94% 30%;
   --success-foreground: 0 0% 100%;
   
-  /* Mattress Orange (Alert) */
-  --warning: 24 95% 53%;
+  /* Mattress Orange (Alert) - #F59E0B */
+  --warning: 38 92% 50%;
   --warning-foreground: 0 0% 100%;
 
-  --muted: 210 20% 90%;
+  /* Muted Gray (Secondary Text) - #64748B */
+  --muted: 210 20% 96%;
   --muted-foreground: 215 16% 47%;
   
-  --accent: 210 100% 96%;
-  --accent-foreground: 210 100% 40%;
+  /* Active State Background */
+  --accent: 210 100% 97%;
+  --accent-foreground: 217 91% 60%;
   
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
   
-  --input: 214 32% 91%;
-  --ring: 24 95% 53%;
+  /* Inset input background - #F1F5F9 */
+  --input: 210 20% 96%;
+  --ring: 217 91% 60%;
 
-  --radius: 1rem;
-  
-  --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 16px -4px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+  --radius: 0.75rem; /* 12px */
 }
 
 @layer base {
@@ -94,9 +97,9 @@
 }
 
 .bento-card {
-  @apply bg-card rounded-2xl shadow-sm border border-slate-100 p-6 transition-all hover:shadow-md;
+  @apply bg-card rounded-xl shadow-md border-none p-6 transition-all hover:shadow-lg;
 }
 
 .pill-legend {
-  @apply flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600;
+  @apply flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 uppercase tracking-wider;
 }

@@ -1,215 +1,148 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { 
   BarChart, 
   Bar, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
-  Tooltip as RechartsTooltip, 
-  Legend, 
+  Tooltip, 
   ResponsiveContainer,
-  PieChart,
-  Pie,
   Cell
 } from "recharts";
-import { AlertCircle } from "lucide-react";
+import { AlertTriangle, TrendingDown, Users, Clock } from "lucide-react";
 
-// Heatmap mock data
 const heatmapData = [
-  { zone: "North Zone", Apr: 12, May: 15, Jun: 18, Jul: 25, Aug: 40, Sep: 45 },
-  { zone: "South Zone", Apr: 8, May: 10, Jun: 12, Jul: 15, Aug: 20, Sep: 22 },
-  { zone: "East Zone", Apr: 20, May: 25, Jun: 30, Jul: 45, Aug: 60, Sep: 65 },
-  { zone: "West Zone", Apr: 5, May: 8, Jun: 10, Jul: 12, Aug: 15, Sep: 18 },
-  { zone: "Central", Apr: 2, May: 4, Jun: 5, Jul: 8, Aug: 10, Sep: 12 },
+  { day: 'Mon', count: 45 },
+  { day: 'Tue', count: 52 },
+  { day: 'Wed', count: 38 },
+  { day: 'Thu', count: 65 },
+  { day: 'Fri', count: 48 },
+  { day: 'Sat', count: 20 },
+  { day: 'Sun', count: 15 },
 ];
 
-const months = ["Apr", "May", "Jun", "Jul", "Aug", "Sep"];
-
-// Concession overlap data
-const concessionData = [
-  { name: 'Standard Defaulters', value: 310 },
-  { name: 'Concession Beneficiary Defaulters', value: 118 }
+const gradeWiseData = [
+  { grade: 'Grade 10', value: 85, color: '#F59E0B' },
+  { grade: 'Grade 9', value: 72, color: '#3B82F6' },
+  { grade: 'Grade 8', value: 64, color: '#1E293B' },
+  { grade: 'Grade 7', value: 58, color: '#10B981' },
 ];
-
-const COLORS = ['var(--color-primary)', 'var(--color-accent)'];
-
-// Demographic data
-const demographicData = [
-  { occupation: "Salaried", "< 5 LPA": 10, "5-10 LPA": 15, "10-20 LPA": 5, "> 20 LPA": 2 },
-  { occupation: "Business Owner", "< 5 LPA": 40, "5-10 LPA": 35, "10-20 LPA": 25, "> 20 LPA": 15 },
-  { occupation: "Daily Wage", "< 5 LPA": 85, "5-10 LPA": 10, "10-20 LPA": 0, "> 20 LPA": 0 },
-];
-
-// Helper for heatmap colors based on value
-const getHeatmapColor = (value: number) => {
-  if (value < 10) return "bg-accent/10 text-accent-foreground/60";
-  if (value < 20) return "bg-accent/30 text-primary";
-  if (value < 40) return "bg-accent/60 text-primary";
-  if (value < 60) return "bg-primary/80 text-white";
-  return "bg-primary text-white";
-};
 
 export function DefaulterAnalysis() {
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <h2 className="text-2xl font-bold text-primary">Defaulter Deep-Dive & Demographics</h2>
-        <p className="text-muted-foreground mt-1">Analyzing the complex behavioral data behind non-payments.</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Heatmap */}
-        <Card className="floating-card lg:col-span-2 overflow-hidden border-0">
-          <div className="p-6 pb-4 border-b border-border bg-white">
-            <h3 className="text-lg font-bold text-primary">Defaulter Heatmap (Month & Location)</h3>
-            <p className="text-sm text-muted-foreground">Identifying seasonal financial burdens in specific areas</p>
-          </div>
-          <CardContent className="p-6 bg-white overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="text-left font-semibold text-slate-500 p-3 bg-slate-50 rounded-tl-lg">Zone / Location</th>
-                  {months.map(month => (
-                    <th key={month} className="font-semibold text-slate-500 p-3 bg-slate-50">{month}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {heatmapData.map((row, i) => (
-                  <tr key={row.zone} className="border-t border-slate-100">
-                    <td className="p-3 font-medium text-primary">{row.zone}</td>
-                    {months.map(month => {
-                      const val = row[month as keyof typeof row] as number;
-                      return (
-                        <td key={`${row.zone}-${month}`} className="p-1">
-                          <div className={`w-full h-10 flex items-center justify-center rounded-md font-medium transition-all hover:scale-105 cursor-pointer ${getHeatmapColor(val)}`}>
-                            {val}
-                          </div>
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            <div className="mt-6 flex items-center gap-4 text-xs text-slate-500">
-              <span className="font-medium">Legend:</span>
-              <div className="flex items-center gap-1"><div className="w-4 h-4 rounded bg-accent/10"></div> Low</div>
-              <div className="flex items-center gap-1"><div className="w-4 h-4 rounded bg-accent/40"></div> Medium</div>
-              <div className="flex items-center gap-1"><div className="w-4 h-4 rounded bg-primary/80"></div> High</div>
-              <div className="flex items-center gap-1"><div className="w-4 h-4 rounded bg-primary"></div> Critical</div>
-            </div>
-            
-            <div className="mt-4 bg-secondary p-4 rounded-lg flex items-start gap-3 border border-border/50">
-              <AlertCircle className="h-5 w-5 text-accent mt-0.5 shrink-0" />
-              <div>
-                <h4 className="text-sm font-semibold text-primary">Insight</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                  East Zone shows consistent high default rates peaking in Q2. Recommend targeted outreach campaigns for this specific location.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Doughnut Chart */}
-        <Card className="floating-card overflow-hidden border-0 flex flex-col">
-          <div className="p-6 pb-2 border-b border-border bg-white">
-            <h3 className="text-lg font-bold text-primary">Concession vs. Defaulter Overlap</h3>
-          </div>
-          <CardContent className="p-6 bg-white flex-1 flex flex-col justify-center">
-            <div className="h-[250px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={concessionData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={90}
-                    paddingAngle={5}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {concessionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#ffffff', 
-                      borderRadius: '8px',
-                      border: 'none',
-                      boxShadow: '0 4px 16px -4px rgba(0, 0, 0, 0.1)'
-                    }}
-                  />
-                  <Legend 
-                    verticalAlign="bottom" 
-                    height={36}
-                    iconType="circle"
-                    formatter={(value) => <span className="text-xs font-medium text-slate-700">{value}</span>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-auto text-center mt-4">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-primary">27%</span> of defaulters are already receiving financial concessions.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Demographic Chart */}
-      <Card className="floating-card overflow-hidden border-0">
-        <div className="p-6 pb-2 border-b border-border bg-white">
-          <h3 className="text-lg font-bold text-primary">Demographic Breakdown (Occupation & Income)</h3>
-          <p className="text-sm text-muted-foreground">Number of defaulters segmented by parent occupation and income slab</p>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 font-source-sans">
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="text-2xl font-black text-[#1E293B] tracking-tight font-roboto">Defaulter Deep-Dive</h2>
+          <p className="text-sm font-semibold text-[#64748B] mt-1 font-open-sans">Granular behavioral segmentation & risk profiles.</p>
         </div>
-        <CardContent className="p-6 bg-white flex flex-col md:flex-row gap-6 items-center">
-          <div className="h-[350px] w-full md:w-2/3">
+        <div className="flex gap-2">
+          <div className="px-3 py-1 bg-orange-100 text-[#F59E0B] rounded-full text-[10px] font-black uppercase tracking-widest font-open-sans">High Risk Zone</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bento-card border-none" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-orange-50 rounded-lg">
+              <AlertTriangle className="h-5 w-5 text-[#F59E0B]" />
+            </div>
+            <h3 className="text-sm font-black text-[#1E293B] font-roboto">Critical Delinquency</h3>
+          </div>
+          <div className="text-3xl font-black text-[#1E293B] mb-1 font-roboto">124</div>
+          <p className="text-[11px] font-bold text-slate-400 font-open-sans">Students with {'>'} 3 months pending</p>
+          <div className="mt-6 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-[#F59E0B] w-[65%] transition-all duration-1000"></div>
+          </div>
+        </Card>
+
+        <Card className="bento-card border-none" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <Clock className="h-5 w-5 text-[#3B82F6]" />
+            </div>
+            <h3 className="text-sm font-black text-[#1E293B] font-roboto">Avg. Delay Days</h3>
+          </div>
+          <div className="text-3xl font-black text-[#1E293B] mb-1 font-roboto">22 Days</div>
+          <p className="text-[11px] font-bold text-slate-400 font-open-sans">↑ 4 days from last month</p>
+          <div className="mt-6 flex items-center gap-2">
+            <TrendingDown className="h-4 w-4 text-[#F59E0B]" />
+            <span className="text-[11px] font-black text-[#F59E0B] uppercase font-open-sans">Performance Dip</span>
+          </div>
+        </Card>
+
+        <Card className="bento-card border-none" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-slate-50 rounded-lg">
+              <Users className="h-5 w-5 text-[#1E293B]" />
+            </div>
+            <h3 className="text-sm font-black text-[#1E293B] font-roboto">Repeated Offenders</h3>
+          </div>
+          <div className="text-3xl font-black text-[#1E293B] mb-1 font-roboto">42%</div>
+          <p className="text-[11px] font-bold text-slate-400 font-open-sans">Behavioral pattern identified</p>
+          <div className="mt-6 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-[#1E293B] w-[42%] transition-all duration-1000"></div>
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="bento-card border-none" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h3 className="text-lg font-black text-[#1E293B] font-roboto">Defaulter Heatmap</h3>
+              <p className="text-xs font-bold text-[#64748B] font-open-sans">Peak delinquency days</p>
+            </div>
+            <div className="pill-legend font-open-sans">Weekly Cycle</div>
+          </div>
+          <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={demographicData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                <XAxis dataKey="occupation" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 500 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B' }} />
-                <RechartsTooltip 
-                  cursor={{fill: 'transparent'}}
-                  contentStyle={{ 
-                    backgroundColor: '#ffffff', 
-                    borderRadius: '8px',
-                    border: 'none',
-                    boxShadow: '0 4px 16px -4px rgba(0, 0, 0, 0.1)'
-                  }}
+              <BarChart data={heatmapData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 11, fontWeight: 800}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 11, fontWeight: 800}} />
+                <Tooltip 
+                  cursor={{fill: '#F8FAFC'}}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
                 />
-                <Legend iconType="circle" />
-                <Bar dataKey="< 5 LPA" stackId="a" fill="#0F172A" radius={[0, 0, 4, 4]} />
-                <Bar dataKey="5-10 LPA" stackId="a" fill="#1E293B" />
-                <Bar dataKey="10-20 LPA" stackId="a" fill="#2DD4BF" />
-                <Bar dataKey="> 20 LPA" stackId="a" fill="#0D9488" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={40}>
+                  {heatmapData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.count > 50 ? '#F59E0B' : '#3B82F6'} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
-          
-          <div className="w-full md:w-1/3 bg-secondary p-6 rounded-xl border border-border/50 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <AlertCircle className="h-6 w-6 text-primary" />
-              <h4 className="text-base font-semibold text-primary">Strategic Insight</h4>
+        </Card>
+
+        <Card className="bento-card border-none" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h3 className="text-lg font-black text-[#1E293B] font-roboto">Grade-wise Delinquency</h3>
+              <p className="text-xs font-bold text-[#64748B] font-open-sans">Risk distribution by level</p>
             </div>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              Salaried professionals yield highly stable collections regardless of income bracket.
-            </p>
-            <p className="text-slate-700 leading-relaxed font-medium">
-              Action: <span className="font-normal">Focus heavy automated reminders and follow-ups specifically on Business Owners and Daily Wage segments.</span>
-            </p>
+            <div className="pill-legend font-open-sans">Academic Split</div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={gradeWiseData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="grade" type="category" axisLine={false} tickLine={false} tick={{fill: '#1E293B', fontSize: 11, fontWeight: 900}} width={80} />
+                <Tooltip 
+                  cursor={{fill: '#F8FAFC'}}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
+                />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
+                  {gradeWiseData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
