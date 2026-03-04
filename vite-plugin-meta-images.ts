@@ -4,17 +4,16 @@ import path from 'path';
 
 /**
  * Vite plugin that updates og:image and twitter:image meta tags
- * to point to the app's opengraph image with the correct Replit domain.
+ * to point to the app's opengraph image with the correct deployment URL.
+ *
+ * Set the APP_DOMAIN environment variable to override the base URL.
+ * Defaults to http://localhost:5000 in development.
  */
 export function metaImagesPlugin(): Plugin {
   return {
     name: 'vite-plugin-meta-images',
     transformIndexHtml(html) {
       const baseUrl = getDeploymentUrl();
-      if (!baseUrl) {
-        log('[meta-images] no Replit deployment domain found, skipping meta tag updates');
-        return html;
-      }
 
       // Check if opengraph image exists in public directory
       const publicDir = path.resolve(process.cwd(), 'client', 'public');
@@ -32,13 +31,10 @@ export function metaImagesPlugin(): Plugin {
       }
 
       if (!imageExt) {
-        log('[meta-images] OpenGraph image not found, skipping meta tag updates');
         return html;
       }
 
       const imageUrl = `${baseUrl}/opengraph.${imageExt}`;
-
-      log('[meta-images] updating meta image tags to:', imageUrl);
 
       html = html.replace(
         /<meta\s+property="og:image"\s+content="[^"]*"\s*\/>/g,
@@ -55,24 +51,11 @@ export function metaImagesPlugin(): Plugin {
   };
 }
 
-function getDeploymentUrl(): string | null {
-  if (process.env.REPLIT_INTERNAL_APP_DOMAIN) {
-    const url = `https://${process.env.REPLIT_INTERNAL_APP_DOMAIN}`;
-    log('[meta-images] using internal app domain:', url);
-    return url;
+function getDeploymentUrl(): string {
+  if (process.env.APP_DOMAIN) {
+    return `https://${process.env.APP_DOMAIN}`;
   }
 
-  if (process.env.REPLIT_DEV_DOMAIN) {
-    const url = `https://${process.env.REPLIT_DEV_DOMAIN}`;
-    log('[meta-images] using dev domain:', url);
-    return url;
-  }
-
-  return null;
-}
-
-function log(...args: any[]): void {
-  if (process.env.NODE_ENV === 'production') {
-    console.log(...args);
-  }
+  const port = process.env.PORT || '5000';
+  return `http://localhost:${port}`;
 }

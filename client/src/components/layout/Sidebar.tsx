@@ -1,17 +1,19 @@
 import { Link, useLocation } from "wouter";
-import { 
-  LayoutDashboard, 
-  WalletCards, 
-  UserX, 
-  Droplet, 
-  ShieldAlert
+import {
+  LayoutDashboard,
+  WalletCards,
+  UserX,
+  Droplet,
+  Sparkles,
+  BarChart3
 } from "lucide-react";
 
 const navItems = [
-  { id: "overview", label: "Dashboard Overview", icon: LayoutDashboard, path: "/" },
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/", badge: "All Insights" },
+  { id: "overview", label: "Executive Overview", icon: BarChart3, path: "/overview" },
   { id: "defaulters", label: "Defaulter Analysis", icon: UserX, path: "/defaulters" },
   { id: "leakage", label: "Leakage & Concessions", icon: Droplet, path: "/leakage" },
-  { id: "action", label: "Action Command Center", icon: ShieldAlert, path: "/action" },
+  { id: "ai-insights", label: "AI Insights", icon: Sparkles, path: "/ai-insights" },
 ];
 
 export function Sidebar() {
@@ -20,45 +22,61 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-white text-[#5A6474] flex flex-col h-full shrink-0 border-r border-[#E2E8F0] font-open-sans">
       <div className="p-6">
-        <h1 className="text-xl font-bold tracking-tight text-[#1E293B] flex items-center gap-2 font-roboto">
-          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-            <WalletCards className="h-5 w-5 text-emerald-600" />
-          </div>
-          EduFinance
-        </h1>
+        <div className="flex flex-col gap-1 items-start">
+          <img src="https://www.entab.in/images-latest/logo.webp" alt="Entab Logo" className="h-8 object-contain" />
+          <p className="text-[11px] font-black tracking-widest text-[#64748B] mt-1 font-open-sans uppercase">Fee Analytics</p>
+        </div>
       </div>
-      
+
       <nav className="flex-1 px-4 py-4 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.path;
-          
+
           return (
             <Link key={item.id} href={item.path}>
-              <div 
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group cursor-pointer ${
-                  isActive 
-                    ? "bg-[#E6F0F9] text-[#1E293B] font-bold" 
-                    : "text-[#5A6474] hover:bg-slate-50 font-medium"
-                }`}
+              <div
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group cursor-pointer ${isActive
+                  ? "bg-[#E6F0F9] text-[#1E293B] font-bold"
+                  : "text-[#5A6474] hover:bg-slate-50 font-medium"
+                  }`}
                 data-testid={`nav-${item.id}`}
               >
-                <Icon className={`h-5 w-5 transition-colors ${
-                  isActive ? "text-[#3B82F6]" : "text-[#5A6474] group-hover:text-[#1E293B]"
-                }`} />
+                <Icon className={`h-5 w-5 transition-colors ${isActive ? "text-[#3B82F6]" : "text-[#5A6474] group-hover:text-[#1E293B]"
+                  }`} />
                 <span className="text-sm">{item.label}</span>
+                {item.badge && (
+                  <span className={`ml-auto text-[10px] font-black px-2 py-0.5 rounded-full ${item.id === "ai-insights"
+                    ? "bg-purple-100 text-purple-600"
+                    : "bg-blue-100 text-blue-600"
+                    }`}>
+                    {item.badge}
+                  </span>
+                )}
               </div>
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-[#E2E8F0] mt-auto">
+      {/* Analytics video — sits in the empty space between nav and footer (bare layout) */}
+      <div className="px-4 py-2 flex justify-center">
+        <video
+          src="/Analytics.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-40 rounded-lg object-cover opacity-80 mix-blend-multiply"
+        />
+      </div>
+
+      <div className="p-4 border-t border-[#E2E8F0]">
         <div className="bg-slate-50 rounded-xl p-4 text-sm border border-[#E2E8F0]">
-          <p className="text-[#64748B] mb-2 font-medium">School Status</p>
+          <p className="text-[#64748B] mb-2 font-medium">System Status</p>
           <div className="flex items-center gap-2 text-[#1E293B] font-bold">
-            <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse"></span>
-            Collection Active
+            <div className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse" />
+            All Systems Active
           </div>
         </div>
       </div>

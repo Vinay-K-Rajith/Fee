@@ -7,28 +7,86 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Cell
+  Cell,
+  PieChart,
+  Pie
 } from "recharts";
-import { AlertTriangle, TrendingDown, Users, Clock } from "lucide-react";
-
-const heatmapData = [
-  { day: 'Mon', count: 45 },
-  { day: 'Tue', count: 52 },
-  { day: 'Wed', count: 38 },
-  { day: 'Thu', count: 65 },
-  { day: 'Fri', count: 48 },
-  { day: 'Sat', count: 20 },
-  { day: 'Sun', count: 15 },
-];
-
-const gradeWiseData = [
-  { grade: 'Grade 10', value: 85, color: '#F59E0B' },
-  { grade: 'Grade 9', value: 72, color: '#3B82F6' },
-  { grade: 'Grade 8', value: 64, color: '#1E293B' },
-  { grade: 'Grade 7', value: 58, color: '#10B981' },
-];
+import { AlertTriangle, TrendingDown, Users, Clock, MapPin, DollarSign } from "lucide-react";
+import { useDefaulterAnalysis, formatPercentage } from "@/hooks/use-api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function DefaulterAnalysis() {
+  const { data: analysis, isLoading, error } = useDefaulterAnalysis();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 font-source-sans">
+        <Skeleton className="h-12 w-80" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-40 rounded-xl" />)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-[400px] rounded-xl" />
+          <Skeleton className="h-[400px] rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !analysis) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-red-500">Error loading defaulter analysis</p>
+      </div>
+    );
+  }
+
+  // Helper function to determine color based on defaulter rate
+  const getDefaulterColor = (rate: number, threshold1: number, threshold2?: number): string => {
+    if (rate > threshold1) return '#F59E0B';
+    if (threshold2 !== undefined && rate > threshold2) return '#3B82F6';
+    return '#10B981';
+  };
+
+  // Prepare chart data
+  const occupationData = analysis.occupationWise.slice(0, 7).map(o => ({
+    name: o.occupation.length > 15 ? o.occupation.substring(0, 15) + '...' : o.occupation,
+    value: Math.round(o.defaulterRate),
+    count: o.defaulterCount,
+    balance: o.totalBalance,
+    color: getDefaulterColor(o.defaulterRate, 20, 10)
+  }));
+
+  const locationData = analysis.locationWise.slice(0, 6).map(l => ({
+    name: l.location,
+    value: Math.round(l.defaulterRate),
+    count: l.defaulterCount,
+    balance: l.totalBalance,
+    color: l.defaulterRate > 15 ? '#F59E0B' : '#3B82F6'
+  }));
+
+  const salaryData = analysis.salarySlabWise.map(s => ({
+    name: s.salarySlab,
+    value: Math.round(s.defaulterRate),
+    count: s.defaulterCount,
+    balance: s.totalBalance,
+    color: getDefaulterColor(s.defaulterRate, 15, 10)
+  }));
+
+  const classData = analysis.classWise.slice(0, 8).map((c, idx) => ({
+    name: c.className.split('-')[0],
+    value: Math.round(c.defaulterRate),
+    count: c.defaulterCount,
+    balance: c.totalBalance,
+    color: ['#F59E0B', '#3B82F6', '#1E293B', '#10B981'][idx % 4]
+  }));
+
+  // Defaulter composition pie chart
+  const defaulterComposition = [
+    { name: 'Habitual', value: analysis.habitualDefaulters, color: '#F59E0B' },
+    { name: 'First-Time', value: analysis.firstTimeDefaulters, color: '#3B82F6' },
+    { name: 'With Concession', value: analysis.concessionBeneficiaryDefaulters, color: '#1E293B' },
+  ];
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 font-source-sans">
       <div className="flex justify-between items-end">
@@ -49,10 +107,13 @@ export function DefaulterAnalysis() {
             </div>
             <h3 className="text-sm font-black text-[#1E293B] font-roboto">Critical Delinquency</h3>
           </div>
-          <div className="text-3xl font-black text-[#1E293B] mb-1 font-roboto">124</div>
+          <div className="text-3xl font-black text-[#1E293B] mb-1 font-roboto">{analysis.criticalDelinquency}</div>
           <p className="text-[11px] font-bold text-slate-400 font-open-sans">Students with {'>'} 3 months pending</p>
           <div className="mt-6 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-[#F59E0B] w-[65%] transition-all duration-1000"></div>
+            <div 
+              className="h-full bg-[#F59E0B] transition-all duration-1000"
+              style={{ width: `${Math.min((analysis.criticalDelinquency / analysis.totalDefaulters) * 100, 100)}%` }}
+            ></div>
           </div>
         </Card>
 
@@ -63,8 +124,8 @@ export function DefaulterAnalysis() {
             </div>
             <h3 className="text-sm font-black text-[#1E293B] font-roboto">Avg. Delay Days</h3>
           </div>
-          <div className="text-3xl font-black text-[#1E293B] mb-1 font-roboto">22 Days</div>
-          <p className="text-[11px] font-bold text-slate-400 font-open-sans">↑ 4 days from last month</p>
+          <div className="text-3xl font-black text-[#1E293B] mb-1 font-roboto">{analysis.avgDelayDays} Days</div>
+          <p className="text-[11px] font-bold text-slate-400 font-open-sans">Average payment delay period</p>
           <div className="mt-6 flex items-center gap-2">
             <TrendingDown className="h-4 w-4 text-[#F59E0B]" />
             <span className="text-[11px] font-black text-[#F59E0B] uppercase font-open-sans">Performance Dip</span>
@@ -76,12 +137,19 @@ export function DefaulterAnalysis() {
             <div className="p-2 bg-slate-50 rounded-lg">
               <Users className="h-5 w-5 text-[#1E293B]" />
             </div>
-            <h3 className="text-sm font-black text-[#1E293B] font-roboto">Repeated Offenders</h3>
+            <h3 className="text-sm font-black text-[#1E293B] font-roboto">Habitual Defaulters</h3>
           </div>
-          <div className="text-3xl font-black text-[#1E293B] mb-1 font-roboto">42%</div>
-          <p className="text-[11px] font-bold text-slate-400 font-open-sans">Behavioral pattern identified</p>
+          <div className="text-3xl font-black text-[#1E293B] mb-1 font-roboto">
+            {analysis.totalDefaulters > 0 
+              ? formatPercentage((analysis.habitualDefaulters / analysis.totalDefaulters) * 100)
+              : '0%'}
+          </div>
+          <p className="text-[11px] font-bold text-slate-400 font-open-sans">{analysis.habitualDefaulters} repeat offenders identified</p>
           <div className="mt-6 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-[#1E293B] w-[42%] transition-all duration-1000"></div>
+            <div 
+              className="h-full bg-[#1E293B] transition-all duration-1000"
+              style={{ width: `${analysis.totalDefaulters > 0 ? (analysis.habitualDefaulters / analysis.totalDefaulters) * 100 : 0}%` }}
+            ></div>
           </div>
         </Card>
       </div>
@@ -90,24 +158,28 @@ export function DefaulterAnalysis() {
         <Card className="bento-card border-none" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h3 className="text-lg font-black text-[#1E293B] font-roboto">Defaulter Heatmap</h3>
-              <p className="text-xs font-bold text-[#64748B] font-open-sans">Peak delinquency days</p>
+              <h3 className="text-lg font-black text-[#1E293B] font-roboto">Occupation-wise Defaulters</h3>
+              <p className="text-xs font-bold text-[#64748B] font-open-sans">Default rate by occupation type</p>
             </div>
-            <div className="pill-legend font-open-sans">Weekly Cycle</div>
+            <div className="pill-legend font-open-sans">Top {occupationData.length}</div>
           </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={heatmapData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 11, fontWeight: 800}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 11, fontWeight: 800}} />
+              <BarChart data={occupationData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 11, fontWeight: 800}} tickFormatter={(v) => `${v}%`} />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#1E293B', fontSize: 10, fontWeight: 900}} width={100} />
                 <Tooltip 
                   cursor={{fill: '#F8FAFC'}}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
+                  formatter={(value: number, name: string, props: any) => [
+                    `${value}% (${props.payload.count} students)`,
+                    'Default Rate'
+                  ]}
                 />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={40}>
-                  {heatmapData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.count > 50 ? '#F59E0B' : '#3B82F6'} />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                  {occupationData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Bar>
               </BarChart>
@@ -118,28 +190,116 @@ export function DefaulterAnalysis() {
         <Card className="bento-card border-none" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h3 className="text-lg font-black text-[#1E293B] font-roboto">Grade-wise Delinquency</h3>
-              <p className="text-xs font-bold text-[#64748B] font-open-sans">Risk distribution by level</p>
+              <h3 className="text-lg font-black text-[#1E293B] font-roboto">Class-wise Delinquency</h3>
+              <p className="text-xs font-bold text-[#64748B] font-open-sans">Risk distribution by grade level</p>
             </div>
-            <div className="pill-legend font-open-sans">Academic Split</div>
+            <div className="pill-legend font-open-sans">All Classes</div>
           </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={gradeWiseData} layout="vertical">
+              <BarChart data={classData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
-                <XAxis type="number" hide />
-                <YAxis dataKey="grade" type="category" axisLine={false} tickLine={false} tick={{fill: '#1E293B', fontSize: 11, fontWeight: 900}} width={80} />
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 11, fontWeight: 800}} tickFormatter={(v) => `${v}%`} />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#1E293B', fontSize: 11, fontWeight: 900}} width={80} />
                 <Tooltip 
                   cursor={{fill: '#F8FAFC'}}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
+                  formatter={(value: number, name: string, props: any) => [
+                    `${value}% (${props.payload.count} students)`,
+                    'Default Rate'
+                  ]}
                 />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
-                  {gradeWiseData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  {classData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        </Card>
+      </div>
+
+      {/* Additional Analysis Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="bento-card border-none" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <MapPin className="h-5 w-5 text-[#3B82F6]" />
+            </div>
+            <h3 className="text-sm font-black text-[#1E293B] font-roboto">Location-wise Risk</h3>
+          </div>
+          <div className="space-y-3">
+            {locationData.map((loc) => (
+              <div key={loc.name} className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-600">{loc.name}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full transition-all duration-1000"
+                      style={{ width: `${loc.value}%`, backgroundColor: loc.color }}
+                    ></div>
+                  </div>
+                  <span className="text-xs font-black" style={{ color: loc.color }}>{loc.value}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="bento-card border-none" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-emerald-50 rounded-lg">
+              <DollarSign className="h-5 w-5 text-[#10B981]" />
+            </div>
+            <h3 className="text-sm font-black text-[#1E293B] font-roboto">Income Slab Analysis</h3>
+          </div>
+          <div className="space-y-3">
+            {salaryData.map((slab) => (
+              <div key={slab.name} className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-600">{slab.name}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full transition-all duration-1000"
+                      style={{ width: `${slab.value}%`, backgroundColor: slab.color }}
+                    ></div>
+                  </div>
+                  <span className="text-xs font-black" style={{ color: slab.color }}>{slab.value}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="bento-card border-none" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
+          <h4 className="text-xs font-black text-[#64748B] uppercase tracking-widest mb-6 font-open-sans">Defaulter Composition</h4>
+          <div className="h-[140px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={defaulterComposition}
+                  innerRadius={40}
+                  outerRadius={60}
+                  paddingAngle={6}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {defaulterComposition.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-4">
+            {defaulterComposition.map((t) => (
+              <div key={t.name} className="flex items-center gap-1.5 text-[10px] font-black text-[#64748B] font-open-sans">
+                <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: t.color}}></div>
+                {t.name} ({t.value})
+              </div>
+            ))}
           </div>
         </Card>
       </div>
