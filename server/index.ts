@@ -1,8 +1,8 @@
 import { config } from "dotenv";
 config();
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { serveStatic } from "./static";
+import { registerRoutes } from "./routes.js";
+import { serveStatic } from "./static.js";
 import { createServer } from "http";
 
 const app = express();
@@ -82,7 +82,7 @@ export default app;
 // Only listen if running locally
 if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   (async () => {
-    const { setupVite } = await import("./vite");
+    const { setupVite } = await import("./vite.js");
     await setupVite(httpServer, app);
 
     // Serve the app on the configured port, defaulting to 5000.

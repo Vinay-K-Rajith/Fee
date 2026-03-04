@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "node:http";
-import { dataLoader } from "./dataLoader";
-import { generateAiResponse } from "./services/ai.service";
+import { dataLoader } from "./dataLoader.js";
+import { generateAiResponse } from "./services/ai.service.js";
 
 
 export function registerRoutes(
