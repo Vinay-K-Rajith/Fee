@@ -80,7 +80,7 @@ app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
 export default app;
 
 // Only listen if running locally
-if (process.env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   (async () => {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
@@ -98,7 +98,7 @@ if (process.env.NODE_ENV !== "production") {
       },
     );
   })();
-} else {
+} else if (!process.env.VERCEL) {
   // on production without Vercel, serve static
   serveStatic(app);
 }
