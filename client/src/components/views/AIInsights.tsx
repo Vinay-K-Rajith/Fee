@@ -83,14 +83,34 @@ const TypewriterMessage = ({ text }: { text: string }) => {
 };
 
 // ─── Main component ───────────────────────────────────────────────────────────
+const CHAT_STORAGE_KEY = "fee_ai_chat_history";
+
 export function AIInsights() {
     const { data: dashboard, isLoading } = useDashboard();
-    const [messages, setMessages] = useState<Message[]>([]);
+
+    // Initialise messages from localStorage so chat survives page refreshes
+    const [messages, setMessages] = useState<Message[]>(() => {
+        try {
+            const stored = localStorage.getItem(CHAT_STORAGE_KEY);
+            return stored ? (JSON.parse(stored) as Message[]) : [];
+        } catch {
+            return [];
+        }
+    });
     const [input, setInput] = useState("");
     const [thinking, setThinking] = useState(false);
-    const [chatReady, setChatReady] = useState(false);
+    const [chatReady, setChatReady] = useState(messages.length > 0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Persist messages to localStorage whenever they change
+    useEffect(() => {
+        try {
+            localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+        } catch {
+            // Storage quota exceeded or unavailable — fail silently
+        }
+    }, [messages]);
 
     // Auto-scroll chat
     useEffect(() => {
@@ -229,6 +249,7 @@ Base your analytics answers purely on this datastore.`;
     const clearChat = () => {
         setMessages([]);
         setChatReady(false);
+        try { localStorage.removeItem(CHAT_STORAGE_KEY); } catch { /* ignore */ }
     };
 
     if (isLoading) {
