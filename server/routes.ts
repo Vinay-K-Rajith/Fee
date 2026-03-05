@@ -316,7 +316,22 @@ export function registerRoutes(
         return res.status(400).json({ error: "Prompt is required" });
       }
 
-      const response = await generateAiResponse(prompt, context);
+      // Supply the AI with the literal directory of all students so it can answer individual-level queries
+      const studentsData = dataLoader.getStudentSummaryData().map(s => ({
+        id: s.admissionNo,
+        name: s.name,
+        class: s.className,
+        father: s.fatherName,
+        due: s.dueAmount,
+        paid: s.paidAmount,
+        balance: s.balanceAmount
+      }));
+
+      const enrichedContext = context
+        ? `${context}\n\nSTUDENT DATA DIRECTORY (Use this to retrieve details on individual students):\n${JSON.stringify(studentsData)}`
+        : `STUDENT DATA DIRECTORY:\n${JSON.stringify(studentsData)}`;
+
+      const response = await generateAiResponse(prompt, enrichedContext);
       res.json({ text: response });
     } catch (error) {
       console.error("AI chat error:", error);
