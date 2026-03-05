@@ -12,9 +12,15 @@ const genAI = new GoogleGenerativeAI(apiKey || "");
 // Use the lite model for faster, more cost-effective responses as requested
 const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
 
-export async function generateAiResponse(prompt: string) {
+export async function generateAiResponse(userMessage: string, systemContext?: string) {
     try {
-        const result = await model.generateContent(prompt);
+        const parts = [];
+        if (systemContext) {
+            parts.push({ text: systemContext });
+        }
+        parts.push({ text: `User Query: ${userMessage}` });
+
+        const result = await model.generateContent(parts);
         const response = await result.response;
         return response.text();
     } catch (error) {

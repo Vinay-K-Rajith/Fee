@@ -13,6 +13,7 @@ import {
     Sparkles,
     RefreshCw,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 // ─── AI setup ──────────────────────────────────────────────────────────────────
 // Logic moved to backend for security. Calling /api/ai/chat instead.
@@ -37,6 +38,38 @@ interface InsightCard {
 
 // ─── Framer variants ──────────────────────────────────────────────────────────
 
+const TypewriterMessage = ({ text }: { text: string }) => {
+    const [displayedText, setDisplayedText] = useState("");
+
+    useEffect(() => {
+        let i = 0;
+        const intervalId = setInterval(() => {
+            setDisplayedText(text.substring(0, i + 1));
+            i++;
+            if (i >= text.length) {
+                clearInterval(intervalId);
+            }
+        }, 15); // Adjust speed here
+        return () => clearInterval(intervalId);
+    }, [text]);
+
+    return (
+        <div className="prose prose-sm max-w-none text-[#1E293B] font-open-sans">
+            <ReactMarkdown
+                components={{
+                    p: ({ node, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
+                    ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-2" {...props} />,
+                    ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-2" {...props} />,
+                    li: ({ node, ...props }) => <li className="mb-1" {...props} />,
+                    strong: ({ node, ...props }) => <strong className="font-bold text-inherit" {...props} />
+                }}
+            >
+                {displayedText}
+            </ReactMarkdown>
+        </div>
+    );
+};
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export function AIInsights() {
     const { data: dashboard, isLoading } = useDashboard();
@@ -56,9 +89,17 @@ export function AIInsights() {
     const buildSystemPrompt = () => {
         if (!dashboard) return "";
         const { kpi, benchmarks, defaulterAnalysis, concessionAnalysis, tcDropoutAnalysis } = dashboard;
-        return `You are an expert school fee analytics assistant for EduFinance — a school fee management system.
+        return `You are a financial and data support AI assistant for the Entab Fee Analytics Dashboard. You help admins and users solve problems related to fee collections, billing, defaulters, concessions, and revenue performance.
 
-Current dashboard metrics:
+When answering, always use the following formatting triggers to help the UI render your response beautifully:
+- For a summary, start with '**Quick Answer:**'
+- For instructions, always use '**Step-by-Step Guide:**' as a heading, then list each step as a numbered list (1., 2., ...) (very important) (ensure all steps are clearly given in every response think step by step)
+- For important notes, use '**Note:**' or '**Warning:**' at the start of the line whenever it is important to the user
+- Use markdown formatting for clarity (bold for headings, lists, etc.)
+
+If a scenario matches, provide the steps or answer in a clear, friendly, and professional manner using the above structure. Remember if exists step by step guide is more important than quick answers or warning. If you don't have info on that particular query ask the user create a new support ticket or send a mail to support@entab.org.
+
+FEE DASHBOARD CONTEXT:
 - Total students: ${kpi.totalStudents}
 - Total fee collection: ${formatCurrency(kpi.totalFeeCollection)}  
 - Collection rate: ${formatPercentage(kpi.collectionRate)} (target: ${benchmarks.collectionRateBenchmark}%)
@@ -73,7 +114,7 @@ Current dashboard metrics:
 - Habitual defaulters: ${defaulterAnalysis.habitualDefaulters}
 - First-time defaulters: ${defaulterAnalysis.firstTimeDefaulters}
 
-Answer questions about this school's fee performance, suggest actionable improvements, or analyse trends. Be concise, data-driven, and financially insightful. Do not use markdown headers — keep responses clean and conversational.`;
+Base your analytics answers purely on this datastore.`;
     };
 
     // Generate insight cards from live data
@@ -335,7 +376,7 @@ Answer questions about this school's fee performance, suggest actionable improve
                                             : "bg-slate-50 text-[#1E293B] border border-slate-100 rounded-tl-sm font-normal"
                                             }`}
                                     >
-                                        {msg.text}
+                                        {msg.role === "ai" ? <TypewriterMessage text={msg.text} /> : msg.text}
                                     </div>
                                 </motion.div>
                             ))}

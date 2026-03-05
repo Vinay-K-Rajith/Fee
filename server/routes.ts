@@ -316,12 +316,7 @@ export function registerRoutes(
         return res.status(400).json({ error: "Prompt is required" });
       }
 
-      // Combine prompt with context if provided
-      const fullPrompt = context
-        ? `${context}\n\nUser Question: ${prompt}`
-        : prompt;
-
-      const response = await generateAiResponse(fullPrompt);
+      const response = await generateAiResponse(prompt, context);
       res.json({ text: response });
     } catch (error) {
       console.error("AI chat error:", error);
