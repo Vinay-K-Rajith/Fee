@@ -14,6 +14,7 @@ import {
     RefreshCw,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 // ─── AI setup ──────────────────────────────────────────────────────────────────
 // Logic moved to backend for security. Calling /api/ai/chat instead.
@@ -56,12 +57,23 @@ const TypewriterMessage = ({ text }: { text: string }) => {
     return (
         <div className="prose prose-sm max-w-none text-[#1E293B] font-open-sans">
             <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
                 components={{
                     p: ({ node, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
                     ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-2" {...props} />,
                     ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-2" {...props} />,
                     li: ({ node, ...props }) => <li className="mb-1" {...props} />,
-                    strong: ({ node, ...props }) => <strong className="font-bold text-inherit" {...props} />
+                    strong: ({ node, ...props }) => <strong className="font-bold text-inherit" {...props} />,
+                    table: ({ node, ...props }) => (
+                        <div className="overflow-x-auto my-4 rounded-xl border border-[#E2E8F0] shadow-sm">
+                            <table className="w-full text-left border-collapse" {...props} />
+                        </div>
+                    ),
+                    thead: ({ node, ...props }) => <thead className="bg-[#F8FAFC] border-b border-[#E2E8F0]" {...props} />,
+                    th: ({ node, ...props }) => <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider text-[#64748B]" {...props} />,
+                    td: ({ node, ...props }) => <td className="px-4 py-3 border-b border-[#F1F5F9] text-sm align-top" {...props} />,
+                    tbody: ({ node, ...props }) => <tbody className="bg-white divide-y divide-[#F1F5F9]" {...props} />,
+                    tr: ({ node, ...props }) => <tr className="hover:bg-[#F8FAFC] transition-colors" {...props} />,
                 }}
             >
                 {displayedText}
