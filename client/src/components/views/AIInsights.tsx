@@ -90,11 +90,15 @@ const CHAT_STORAGE_KEY = "fee_ai_chat_history";
 export function AIInsights() {
     const { data: dashboard, isLoading } = useDashboard();
 
-    // Initialise messages from localStorage so chat survives page refreshes
+    // Initialise messages from localStorage so chat survives page refreshes.
+    // Always strip `isNew` on read so stale cached entries never trigger the animation.
     const [messages, setMessages] = useState<Message[]>(() => {
         try {
             const stored = localStorage.getItem(CHAT_STORAGE_KEY);
-            return stored ? (JSON.parse(stored) as Message[]) : [];
+            if (!stored) return [];
+            const parsed = JSON.parse(stored) as Message[];
+            // Drop isNew whether this was written by old or new code
+            return parsed.map(({ isNew: _drop, ...rest }) => rest);
         } catch {
             return [];
         }
