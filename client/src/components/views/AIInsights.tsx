@@ -105,10 +105,12 @@ export function AIInsights() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Persist messages to localStorage whenever they change
+    // Persist messages to localStorage whenever they change.
+    // Strip isNew so restored messages never trigger the typewriter animation on reload.
     useEffect(() => {
         try {
-            localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+            const toStore = messages.map(({ isNew: _drop, ...rest }) => rest);
+            localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(toStore));
         } catch {
             // Storage quota exceeded or unavailable — fail silently
         }
