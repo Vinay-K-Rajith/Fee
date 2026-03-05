@@ -25,6 +25,7 @@ interface Message {
     id: string;
     role: "user" | "ai";
     text: string;
+    isNew?: boolean; // true only for messages received in the current session (not from localStorage)
 }
 
 interface InsightCard {
@@ -39,10 +40,11 @@ interface InsightCard {
 
 // ─── Framer variants ──────────────────────────────────────────────────────────
 
-const TypewriterMessage = ({ text }: { text: string }) => {
-    const [displayedText, setDisplayedText] = useState("");
+const TypewriterMessage = ({ text, animate }: { text: string; animate: boolean }) => {
+    const [displayedText, setDisplayedText] = useState(animate ? "" : text);
 
     useEffect(() => {
+        if (!animate) return; // skip animation for restored messages
         let i = 0;
         const intervalId = setInterval(() => {
             setDisplayedText(text.substring(0, i + 1));
@@ -50,9 +52,9 @@ const TypewriterMessage = ({ text }: { text: string }) => {
             if (i >= text.length) {
                 clearInterval(intervalId);
             }
-        }, 15); // Adjust speed here
+        }, 15);
         return () => clearInterval(intervalId);
-    }, [text]);
+    }, [text, animate]);
 
     return (
         <div className="prose prose-sm max-w-none text-[#1E293B] font-open-sans">
@@ -232,13 +234,14 @@ Base your analytics answers purely on this datastore.`;
             if (!response.ok) throw new Error("API request failed");
 
             const result = await response.json();
-            const aiMsg: Message = { id: (Date.now() + 1).toString(), role: "ai", text: result.text };
+            const aiMsg: Message = { id: (Date.now() + 1).toString(), role: "ai", text: result.text, isNew: true };
             setMessages((prev) => [...prev, aiMsg]);
         } catch {
             const errMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: "ai",
                 text: "Sorry, I couldn't reach the AI service right now. Please try again.",
+                isNew: true,
             };
             setMessages((prev) => [...prev, errMsg]);
         } finally {
@@ -409,7 +412,7 @@ Base your analytics answers purely on this datastore.`;
                                             : "bg-slate-50 text-[#1E293B] border border-slate-100 rounded-tl-sm font-normal"
                                             }`}
                                     >
-                                        {msg.role === "ai" ? <TypewriterMessage text={msg.text} /> : msg.text}
+                                        {msg.role === "ai" ? <TypewriterMessage text={msg.text} animate={msg.isNew === true} /> : msg.text}
                                     </div>
                                 </motion.div>
                             ))}
