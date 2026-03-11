@@ -1,16 +1,16 @@
 import { Card } from "@/components/ui/card";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
   ResponsiveContainer,
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
+  Radar, 
+  RadarChart, 
+  PolarGrid, 
+  PolarAngleAxis, 
   PolarRadiusAxis,
   Cell,
   PieChart,
@@ -157,10 +157,10 @@ export function LeakageConcessions() {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={waterfallData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#1E293B', fontSize: 11, fontWeight: 900 }} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 800 }} tickFormatter={(v) => `₹${Math.abs(v)}L`} />
-              <Tooltip
-                cursor={{ fill: '#F8FAFC' }}
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#1E293B', fontSize: 11, fontWeight: 900}} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 11, fontWeight: 800}} tickFormatter={(v) => `₹${Math.abs(v)}L`} />
+              <Tooltip 
+                cursor={{fill: '#F8FAFC'}}
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
                 formatter={(value: number) => [`₹${Math.abs(value)}L`, value < 0 ? 'Loss' : 'Revenue']}
               />
@@ -179,21 +179,19 @@ export function LeakageConcessions() {
           <h3 className="text-lg font-black text-[#1E293B] mb-8 font-roboto">Class-wise Collection Performance</h3>
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={radarData} layout="vertical" margin={{ top: 0, right: 30, left: 10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
-                <XAxis type="number" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
-                <YAxis dataKey="grade" type="category" axisLine={false} tickLine={false} tick={{ fill: '#1E293B', fontSize: 11, fontWeight: 700 }} width={60} />
-                <Tooltip
-                  cursor={{ fill: '#F8FAFC' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
-                  formatter={(value: number) => [`${value}%`, 'Collection Rate']}
+              <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+                <PolarGrid stroke="#E2E8F0" />
+                <PolarAngleAxis dataKey="grade" tick={{ fill: '#1E293B', fontSize: 11, fontWeight: 900 }} />
+                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+                <Radar
+                  name="Collection %"
+                  dataKey="collection"
+                  stroke="#3B82F6"
+                  fill="#3B82F6"
+                  fillOpacity={0.25}
                 />
-                <Bar dataKey="collection" radius={[0, 4, 4, 0]} barSize={20}>
-                  {radarData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.collection < 50 ? '#ef4444' : entry.collection < 75 ? '#F59E0B' : '#10B981'} />
-                  ))}
-                </Bar>
-              </BarChart>
+                <Tooltip formatter={(value: number) => [`${value}%`, 'Collection Rate']} />
+              </RadarChart>
             </ResponsiveContainer>
           </div>
           <div className="mt-6 bg-[#FFFBEB] p-4 rounded-xl border border-amber-100 flex items-start gap-3">
@@ -203,7 +201,7 @@ export function LeakageConcessions() {
                 Critical Attention Areas
               </p>
               <p className="text-xs text-amber-900 font-bold font-open-sans">
-                {lowestCollectionClasses.map(c => c.className.split('-')[0]).join(', ')} showing below-benchmark collection.
+                {lowestCollectionClasses.map(c => c.className.split('-')[0]).join(', ')} showing below-benchmark collection. 
                 Action: Implement strict TC clearance, increase parent engagement, consider fee payment plans.
               </p>
             </div>
@@ -214,7 +212,7 @@ export function LeakageConcessions() {
           <div>
             <h3 className="text-lg font-black text-[#1E293B] mb-2 font-roboto">Payment Mode Split</h3>
             <p className="text-xs font-bold text-[#64748B] mb-10 font-open-sans">Digital vs. Traditional methods</p>
-
+            
             <div className="space-y-8">
               <div className="space-y-3">
                 <div className="flex justify-between items-end">
@@ -241,7 +239,7 @@ export function LeakageConcessions() {
           <div className="mt-12 bg-blue-50 p-4 rounded-xl border border-blue-100">
             <h4 className="text-xs font-black text-[#3B82F6] uppercase tracking-widest mb-1 font-open-sans">Efficiency Target</h4>
             <p className="text-xs text-blue-900 font-bold leading-relaxed font-open-sans">
-              Target {benchmarks.digitalAdoptionBenchmark}% digital adoption to reduce overhead.
+              Target {benchmarks.digitalAdoptionBenchmark}% digital adoption to reduce overhead. 
               Current gap: {benchmarks.digitalAdoptionBenchmark - kpi.digitalAdoption}%.
             </p>
           </div>
@@ -277,7 +275,7 @@ export function LeakageConcessions() {
           <div className="flex flex-wrap justify-center gap-3 mt-4">
             {concessionCategories.map((cat) => (
               <div key={cat.name} className="flex items-center gap-1.5 text-[10px] font-black text-[#64748B] font-open-sans">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }}></div>
+                <div className="w-2 h-2 rounded-full" style={{backgroundColor: cat.color}}></div>
                 {cat.name}
               </div>
             ))}
@@ -290,10 +288,10 @@ export function LeakageConcessions() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={tcByClass} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
-                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 800 }} tickFormatter={(v) => `₹${v}L`} />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#1E293B', fontSize: 11, fontWeight: 900 }} width={60} />
-                <Tooltip
-                  cursor={{ fill: '#F8FAFC' }}
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 11, fontWeight: 800}} tickFormatter={(v) => `₹${v}L`} />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#1E293B', fontSize: 11, fontWeight: 900}} width={60} />
+                <Tooltip 
+                  cursor={{fill: '#F8FAFC'}}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
                   formatter={(value: number, name: string, props: any) => [
                     `₹${value}L (${props.payload.tcCount} TCs)`,

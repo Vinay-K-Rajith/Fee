@@ -47,7 +47,13 @@ function MapFitter({ locations }: { locations: LocationData[] }) {
   useEffect(() => {
     if (locations.length === 0) return;
 
-    const validCoords = locations.filter((d) => d.coordinates?.lat && d.coordinates?.lng);
+    // Filter out extreme outliers (outside of Rajasthan roughly) to keep the map focused on Udaipur context
+    const validCoords = locations.filter((d) => 
+      d.coordinates?.lat && 
+      d.coordinates?.lng &&
+      d.coordinates.lat > 22 && d.coordinates.lat < 28 && // Rajasthan roughly
+      d.coordinates.lng > 70 && d.coordinates.lng < 78
+    );
     if (validCoords.length === 0) return;
 
     // Create bounds from all valid coordinates
@@ -58,7 +64,7 @@ function MapFitter({ locations }: { locations: LocationData[] }) {
     boundsRef.current = bounds;
 
     // Fit map to bounds with padding
-    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
   }, [locations, map]);
 
   return null;
@@ -109,10 +115,10 @@ export function DefaulterLocationMap() {
   const mapCenter: [number, number] =
     locationData.length > 0
       ? [
-          locationData.reduce((sum, d) => sum + (d.coordinates?.lat || 28.7041), 0) / locationData.length,
-          locationData.reduce((sum, d) => sum + (d.coordinates?.lng || 77.1025), 0) / locationData.length,
+          locationData.reduce((sum, d) => sum + (d.coordinates?.lat || 24.5854), 0) / locationData.length,
+          locationData.reduce((sum, d) => sum + (d.coordinates?.lng || 73.7125), 0) / locationData.length,
         ]
-      : [28.7041, 77.1025]; // Delhi center
+      : [24.5854, 73.7125]; // Udaipur center
 
   return (
     <Card
@@ -121,7 +127,10 @@ export function DefaulterLocationMap() {
     >
       <MapContainer center={mapCenter} zoom={11} style={{ height: '100%', width: '100%' }} className="rounded-xl">
         <MapFitter locations={locationData} />
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+        />
 
         {/* Critical Zones (High Default Rate >15%) */}
         {locationData
@@ -139,7 +148,7 @@ export function DefaulterLocationMap() {
                   opacity: 0.8,
                   fillOpacity: 0.6,
                 }}
-                radius={Math.min(loc.defaulterCount / 5, 25)}
+                radius={Math.min((loc.defaulterCount * 2) + 8, 35)}
               >
                 <Popup>
                   <div className="p-3 text-sm">
@@ -171,7 +180,7 @@ export function DefaulterLocationMap() {
                   opacity: 0.8,
                   fillOpacity: 0.5,
                 }}
-                radius={Math.min(loc.defaulterCount / 5, 20)}
+                radius={Math.min((loc.defaulterCount * 2) + 6, 30)}
               >
                 <Popup>
                   <div className="p-3 text-sm">
@@ -203,7 +212,7 @@ export function DefaulterLocationMap() {
                   opacity: 0.8,
                   fillOpacity: 0.4,
                 }}
-                radius={Math.min(loc.defaulterCount / 5, 15)}
+                radius={Math.min((loc.defaulterCount * 2) + 5, 25)}
               >
                 <Popup>
                   <div className="p-3 text-sm">

@@ -32,15 +32,12 @@
   --color-warning: hsl(var(--warning));
   --color-info: hsl(var(--info));
 
-  --font-sans: 'Inter', 'Roboto', 'Open Sans', 'Source Sans Pro', sans-serif;
-  --font-roboto: 'Roboto', sans-serif;
-  --font-open-sans: 'Open Sans', sans-serif;
-  --font-source-sans: 'Source Sans Pro', sans-serif;
+  --font-sans: 'Inter', sans-serif;
 }
 
 :root {
-  /* Soft cool off-white background - #F4F7F9 */
-  --background: 206 33% 97%; 
+  /* Dynamic cool off-white background - #F8FAFC */
+  --background: 210 40% 98%; 
   
   /* Charcoal Gray Primary Text - #1E293B */
   --foreground: 217 33% 17%;
@@ -97,7 +94,20 @@
 }
 
 .bento-card {
-  @apply bg-card rounded-xl shadow-md border-none p-6 transition-all hover:shadow-lg;
+  @apply bg-card rounded-xl shadow-sm border border-slate-200/60 p-6 transition-all duration-300 hover:shadow-md hover:border-slate-300/80;
+}
+
+/* Chart container — always white background */
+.chart-wrap {
+  background: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Make all Recharts SVGs have white background */
+.recharts-wrapper,
+.recharts-surface {
+  background: #ffffff !important;
 }
 
 .pill-legend {

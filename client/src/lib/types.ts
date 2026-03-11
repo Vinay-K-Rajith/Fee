@@ -1,23 +1,22 @@
 // ========================================
-// API Response Types (matching backend)
+// API Response Types (matching new backend)
 // ========================================
 
 // KPI Summary
 export interface KPISummary {
   totalFeeCollection: number;
   totalExpected: number;
+  totalConcession: number;
+  netExpected: number;
   collectionRate: number;
+  totalBalance: number;
   totalDefaulters: number;
   defaulterRate: number;
-  totalConcession: number;
-  concessionRate: number;
-  totalTcDropoutLoss: number;
-  tcDropoutCount: number;
-  digitalAdoption: number;
   totalStudents: number;
   activeStudents: number;
-  totalBalance: number;
-  totalLateFee: number;
+  digitalAdoption: number;
+  concessionRate: number;
+  paymentModes: Record<string, number>;
 }
 
 // Benchmark Data
@@ -25,9 +24,9 @@ export interface BenchmarkData {
   collectionRateBenchmark: number;
   defaulterRateBenchmark: number;
   concessionRateBenchmark: number;
-  retentionRateBenchmark: number;
-  digitalAdoptionBenchmark: number;
-  quarterlyCollectionBenchmark: number;
+  digitalAdoptionTarget: number;
+  industryAvgCollectionRate: number;
+  industryAvgDefaulterRate: number;
 }
 
 // Year-on-Year Performance
@@ -35,11 +34,10 @@ export interface YearlyPerformance {
   year: string;
   totalExpected: number;
   totalCollected: number;
+  totalConcession: number;
+  totalBalance: number;
   collectionRate: number;
-  defaulterCount: number;
-  defaulterRate: number;
-  tcDropoutLoss: number;
-  concessionGiven: number;
+  studentCount: number;
 }
 
 // Month-on-Month Performance
@@ -63,7 +61,6 @@ export interface OccupationDefaulter {
   totalStudents: number;
   defaulterRate: number;
   totalBalance: number;
-  avgInstallmentsPaid?: number;
 }
 
 export interface LocationDefaulter {
@@ -74,135 +71,62 @@ export interface LocationDefaulter {
   totalBalance: number;
 }
 
-export interface SalarySlabDefaulter {
-  salarySlab: string;
-  defaulterCount: number;
-  totalStudents: number;
-  defaulterRate: number;
-  totalBalance: number;
-}
-
 export interface ClassDefaulter {
   className: string;
   defaulterCount: number;
-  totalStudents: number;
-  defaulterRate: number;
   totalBalance: number;
-  collectionRate: number;
+  avgBalance: number;
+}
+
+export interface DefaulterListItem {
+  admissionNo: string;
+  name: string;
+  className: string;
+  fatherName: string;
+  balance: number;
 }
 
 export interface DefaulterAnalysis {
   totalDefaulters: number;
-  habitualDefaulters: number;
-  firstTimeDefaulters: number;
-  concessionBeneficiaryDefaulters: number;
-  criticalDelinquency: number;
-  avgDelayDays: number;
+  totalBalance: number;
   occupationWise: OccupationDefaulter[];
   locationWise: LocationDefaulter[];
-  salarySlabWise: SalarySlabDefaulter[];
   classWise: ClassDefaulter[];
+  defaulterList: DefaulterListItem[];
 }
 
 // Concession Analysis
-export interface ConcessionCategory {
-  category: string;
-  amount: number;
+export interface ConcessionTypeWise {
+  concessionType: string;
   studentCount: number;
-  percentage: number;
-}
-
-export interface MonthlyConcession {
-  month: string;
-  standard: number;
-  unplanned: number;
-  total: number;
+  totalAmount: number;
+  defaulterCount: number;
+  defaulterRate: number;
 }
 
 export interface ConcessionAnalysis {
-  totalConcessionGiven: number;
-  concessionRate: number;
+  totalConcession: number;
   studentsWithConcession: number;
-  concessionDefaulters: number;
-  concessionDefaulterRate: number;
-  byCategory: ConcessionCategory[];
-  monthlyTrend: MonthlyConcession[];
+  concessionRate: number;
+  concessionTypeWise: ConcessionTypeWise[];
+  avgConcessionPerStudent: number;
 }
 
-// TC/Dropout Analysis
-export interface MonthlyTcDropout {
-  month: string;
-  tcCount: number;
-  dropoutCount: number;
-  revenueLoss: number;
+// Payment Mode Analysis
+export interface PaymentModeData {
+  paymentMode: string;
+  transactionCount: number;
+  totalAmount: number;
+  avgTransactionSize: number;
 }
 
-export interface ClassTcDropout {
-  className: string;
-  tcCount: number;
-  dropoutCount: number;
-  revenueLoss: number;
-}
-
-export interface TcDropoutAnalysis {
-  totalTcDropouts: number;
-  revenueLoss: number;
-  monthlyTrend: MonthlyTcDropout[];
-  byClass: ClassTcDropout[];
-  retentionRate: number;
-}
-
-// Class-wise Analysis
-export interface ClassWiseAnalysis {
-  className: string;
-  totalStudents: number;
-  totalExpected: number;
-  totalCollected: number;
-  collectionRate: number;
-  defaulterCount: number;
-  concessionAmount: number;
-  tcDropouts: number;
-}
-
-// Instalment Analysis
-export interface InstalmentAnalysis {
-  installmentName: string;
-  totalExpected: number;
-  totalCollected: number;
-  collectionRate: number;
-  defaulterCount: number;
-}
-
-// Revenue Waterfall
-export interface RevenueWaterfall {
-  expectedRevenue: number;
-  tcLoss: number;
-  dropoutLoss: number;
-  concessionLoss: number;
-  pendingBalance: number;
-  realizedRevenue: number;
-}
-
-// Fee Pay Masters
-export interface FeePayMaster {
-  occupation: string;
-  location: string;
-  salarySlab: string;
+// Admission Type Analysis
+export interface AdmissionTypeData {
+  admissionType: string;
   studentCount: number;
-  totalPaid: number;
-  avgPaymentDays: number;
-  reliabilityScore: number;
-}
-
-// Action Recommendations
-export interface ActionRecommendation {
-  id: string;
-  category: string;
-  priority: 'high' | 'medium' | 'low';
-  title: string;
-  description: string;
-  impact: string;
-  implementation: string[];
+  totalCollected: number;
+  defaulterCount: number;
+  defaulterRate: number;
 }
 
 // Student Summary
@@ -218,6 +142,16 @@ export interface StudentSummary {
   balanceAmount: number;
 }
 
+// Extended Analysis
+export interface ExtendedAnalysis {
+  outstandingPercent: number;
+  totalLateFee: number;
+  monthlyLateFees: { month: string; amount: number }[];
+  chequeBounces: number;
+  reAdmissions: number;
+  delayTimeBuckets: { id: string; label: string; count: number }[];
+}
+
 // Full Dashboard Data
 export interface DashboardData {
   kpi: KPISummary;
@@ -226,9 +160,7 @@ export interface DashboardData {
   yearlyPerformance: YearlyPerformance[];
   defaulterAnalysis: DefaulterAnalysis;
   concessionAnalysis: ConcessionAnalysis;
-  tcDropoutAnalysis: TcDropoutAnalysis;
-  classWiseAnalysis: ClassWiseAnalysis[];
-  installmentAnalysis: InstalmentAnalysis[];
-  revenueWaterfall: RevenueWaterfall;
-  recommendations: ActionRecommendation[];
+  paymentModeAnalysis: PaymentModeData[];
+  admissionTypeAnalysis: AdmissionTypeData[];
+  extendedAnalysis: ExtendedAnalysis;
 }

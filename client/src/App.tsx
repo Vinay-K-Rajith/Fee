@@ -6,20 +6,22 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ProfessionalDashboard } from "@/pages/ProfessionalDashboard";
-import { ExecutiveOverview } from "@/components/views/ExecutiveOverview";
-import { DefaulterAnalysis } from "@/components/views/DefaulterAnalysis";
-import { LeakageConcessions } from "@/components/views/LeakageConcessions";
+import { DashboardHome } from "@/pages/DashboardHome";
+import { CollectionPerformance } from "@/pages/CollectionPerformance";
+import { DefaulterAnalytics } from "@/pages/DefaulterAnalytics";
+import { ConcessionsLosses } from "@/pages/ConcessionsLosses";
+import { DemographicsOperations } from "@/pages/DemographicsOperations";
 import { AIInsights } from "@/components/views/AIInsights";
 
 function Router() {
   return (
     <DashboardLayout>
       <Switch>
-        <Route path="/" component={ProfessionalDashboard} />
-        <Route path="/overview" component={ExecutiveOverview} />
-        <Route path="/defaulters" component={DefaulterAnalysis} />
-        <Route path="/leakage" component={LeakageConcessions} />
+        <Route path="/" component={DashboardHome} />
+        <Route path="/collections" component={CollectionPerformance} />
+        <Route path="/defaulters" component={DefaulterAnalytics} />
+        <Route path="/concessions" component={ConcessionsLosses} />
+        <Route path="/demographics" component={DemographicsOperations} />
         <Route path="/ai-insights" component={AIInsights} />
         <Route component={NotFound} />
       </Switch>
