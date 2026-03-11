@@ -14,8 +14,8 @@ import { SmartTooltip } from '@/components/charts/chartUtils';
 
 
 export function CollectionPerformance() {
-  const { data: dashboard, isLoading, error } = useDashboard();
   const [yearFilter, setYearFilter] = useState<string>('2025-26');
+  const { data: dashboard, isLoading, error } = useDashboard(yearFilter);
 
   if (isLoading) {
     return (
@@ -42,7 +42,7 @@ export function CollectionPerformance() {
   const displayRate = specificYearData ? specificYearData.collectionRate : kpi.collectionRate;
   const isGood = displayRate >= benchmarks.collectionRateBenchmark;
 
-  // Monthly data is already filtered server-side — no scale needed
+  // Monthly data is already filtered server-side — show the full 12-month FY timeline
   const displayMonthly = monthlyPerformance;
 
   // Actual vs Forecast split for YoY chart
@@ -56,18 +56,14 @@ export function CollectionPerformance() {
     actualExpected: !d.isForecast ? d.totalExpected : null,
   }));
 
-  // Instalment-wise data from monthly aggregated by install period (APR, AUG, DEC → Q1/Q2/Q3)
-  const instGroups = [
-    { name: 'Apr Instalment', months: ['Apr', 'May'] },
-    { name: 'Aug Instalment', months: ['Aug', 'Sep'] },
-    { name: 'Dec Instalment', months: ['Dec', 'Jan'] },
-  ];
-  const instalmentData = instGroups.map(g => {
-    const rows = displayMonthly.filter((m: any) => g.months.includes(m.month));
-    const expected = rows.reduce((s: number, r: any) => s + r.totalExpected, 0);
-    const collected = rows.reduce((s: number, r: any) => s + r.totalCollected, 0);
-    return { name: g.name, expected, collected, rate: expected > 0 ? (collected / expected) * 100 : 0 };
-  });
+  // Build full 12-month installment data
+  // Even if a month has 0 expected (not an installment month), it maintains the timeline grid
+  const instalmentData = displayMonthly.map((m: any) => ({
+    name: m.month,
+    expected: m.totalExpected,
+    collected: m.totalCollected,
+    rate: m.totalExpected > 0 ? (m.totalCollected / m.totalExpected) * 100 : 0,
+  }));
 
   return (
     <div className="min-h-screen bg-transparent space-y-8 animate-in fade-in duration-500 pb-12">
@@ -156,17 +152,17 @@ export function CollectionPerformance() {
         <Card className="bento-card">
           <div className="mb-5 border-b border-slate-100 pb-4">
             <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Instalment-wise Collection Rate</h3>
-            <p className="text-xs text-slate-500">Collection performance per instalment cycle (Apr / Aug / Dec).</p>
+            <p className="text-xs text-slate-500">Expected vs. collected per instalment month — all months with activity shown.</p>
           </div>
-          <div className="h-[280px]">
+          <div className="h-[340px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={instalmentData} layout="vertical" margin={{ top: 10, right: 50, bottom: 10, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={GRID_COLOR} />
                 <XAxis type="number" tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} />
-                <YAxis dataKey="name" type="category" tick={{ ...tickStyle, fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} width={120} />
+                <YAxis dataKey="name" type="category" tick={{ ...tickStyle, fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} width={44} />
                 <Tooltip content={<SmartTooltip />} />
-                <Bar dataKey="expected" name="Scheduled" fill="#E2E8F0" radius={[0, 4, 4, 0]} barSize={18} />
-                <Bar dataKey="collected" name="Collected" fill={BRAND_INDIGO} radius={[0, 4, 4, 0]} barSize={18} />
+                <Bar dataKey="expected" name="Scheduled" fill="#E2E8F0" radius={[0, 4, 4, 0]} barSize={14} />
+                <Bar dataKey="collected" name="Collected" fill={BRAND_INDIGO} radius={[0, 4, 4, 0]} barSize={14} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
