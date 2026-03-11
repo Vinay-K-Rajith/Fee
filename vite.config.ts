@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import path from "path";
+import path from "node:path";
 import { metaImagesPlugin } from "./vite-plugin-meta-images";
 
 export default defineConfig({
@@ -28,7 +28,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    host: "localhost",
+    host: "127.0.0.1",
     port: 5000,
     fs: {
       strict: true,

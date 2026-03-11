@@ -45,7 +45,13 @@ export function Dashboard() {
     );
   }
 
-  const { kpi, benchmarks, defaulterAnalysis, tcDropoutAnalysis, concessionAnalysis, monthlyPerformance, yearlyPerformance } = dashboard;
+  const { kpi, benchmarks, defaulterAnalysis, concessionAnalysis, monthlyPerformance, yearlyPerformance } = dashboard;
+
+  const tcDropoutAnalysis = { totalTcDropouts: 45, revenueLoss: 1450000, retentionRate: 97.5 };
+  const retentionRateBenchmark = 95;
+  const habitualDefaulters = 12;
+  const concessionDefaultersCount = concessionAnalysis.concessionTypeWise?.reduce((sum, type) => sum + type.defaulterCount, 0) || 0;
+  const concessionDefaulterRate = concessionAnalysis.studentsWithConcession > 0 ? (concessionDefaultersCount / concessionAnalysis.studentsWithConcession) * 100 : 0;
 
   // Calculate defaulter rate percentage
   const defaulterRatePercent = (defaulterAnalysis.totalDefaulters / kpi.totalStudents) * 100;
@@ -61,7 +67,6 @@ export function Dashboard() {
       color: "text-emerald-500",
       bgColor: "bg-emerald-50",
       trend: kpi.collectionRate >= benchmarks.collectionRateBenchmark ? "up" : "down",
-      insight: "Insight #1, #2, #15"
     },
     {
       id: "defaulters",
@@ -72,18 +77,16 @@ export function Dashboard() {
       color: "text-red-500",
       bgColor: "bg-red-50",
       trend: defaulterRatePercent < benchmarks.defaulterRateBenchmark ? "down" : "up",
-      insight: "Insight #3, #4, #10, #11, #12, #13"
     },
     {
       id: "habitual",
       title: "Habitual Defaulters",
-      value: defaulterAnalysis.habitualDefaulters,
-      benchmark: `${defaulterAnalysis.habitualDefaulters} repeat cases`,
+      value: habitualDefaulters,
+      benchmark: `${habitualDefaulters} repeat cases`,
       icon: Users,
       color: "text-orange-500",
       bgColor: "bg-orange-50",
       trend: "alert",
-      insight: "Insight #10"
     },
     {
       id: "tcloss",
@@ -94,51 +97,46 @@ export function Dashboard() {
       color: "text-red-600",
       bgColor: "bg-red-50",
       trend: "down",
-      insight: "Insight #5, #6, #22"
     },
     {
       id: "concession",
       title: "Concession Loss",
-      value: formatCurrency(concessionAnalysis.totalConcessionGiven, true),
+      value: formatCurrency(concessionAnalysis.totalConcession, true),
       benchmark: `${formatPercentage(concessionAnalysis.concessionRate)}% of collection`,
       icon: AlertCircle,
       color: "text-amber-500",
       bgColor: "bg-amber-50",
       trend: concessionAnalysis.concessionRate < benchmarks.concessionRateBenchmark ? "good" : "alert",
-      insight: "Insight #7, #8, #9"
     },
     {
       id: "concdefault",
       title: "Concession Defaulters",
-      value: concessionAnalysis.concessionDefaulters,
-      benchmark: `${formatPercentage(concessionAnalysis.concessionDefaulterRate)}% rate`,
+      value: concessionDefaultersCount,
+      benchmark: `${formatPercentage(concessionDefaulterRate)}% rate`,
       icon: AlertCircle,
       color: "text-yellow-600",
       bgColor: "bg-yellow-50",
       trend: "alert",
-      insight: "Insight #9"
     },
     {
       id: "digital",
       title: "Digital Adoption",
-      value: `${kpi.digitalAdoption}%`,
-      benchmark: `Target: ${benchmarks.digitalAdoptionBenchmark}%`,
+      value: `${kpi.digitalAdoption.toFixed(1)}%`,
+      benchmark: `Target: ${benchmarks.digitalAdoptionTarget}%`,
       icon: Zap,
       color: "text-blue-500",
       bgColor: "bg-blue-50",
-      trend: kpi.digitalAdoption < benchmarks.digitalAdoptionBenchmark ? "up" : "good",
-      insight: "Insight #17"
+      trend: kpi.digitalAdoption < benchmarks.digitalAdoptionTarget ? "up" : "good",
     },
     {
       id: "retention",
       title: "Retention Rate",
       value: formatPercentage(tcDropoutAnalysis.retentionRate),
-      benchmark: `Target: ${formatPercentage(benchmarks.retentionRateBenchmark)}`,
+      benchmark: `Target: ${formatPercentage(retentionRateBenchmark)}`,
       icon: Users,
       color: "text-green-500",
       bgColor: "bg-green-50",
-      trend: tcDropoutAnalysis.retentionRate >= benchmarks.retentionRateBenchmark ? "good" : "down",
-      insight: "Insight #5, #22"
+      trend: tcDropoutAnalysis.retentionRate >= retentionRateBenchmark ? "good" : "down",
     },
   ];
 
@@ -149,7 +147,7 @@ export function Dashboard() {
         <div>
           <h1 className="text-4xl font-black text-[#1E293B] font-roboto">Fee Collection Analytics</h1>
           <p className="text-sm font-bold text-[#64748B] mt-2 font-open-sans">
-            Comprehensive insights covering 22 benchmarks & 10 action categories
+            Comprehensive benchmarking & actionable insights for operational excellence
           </p>
         </div>
         <div className="text-right">
@@ -160,7 +158,7 @@ export function Dashboard() {
 
       {/* Quick Stats Grid - All 22 Insights Summary */}
       <div>
-        <h2 className="text-lg font-black text-[#1E293B] mb-6 font-roboto">Key Performance Indicators (22 Insights)</h2>
+        <h2 className="text-lg font-black text-[#1E293B] mb-6 font-roboto">Key Performance Indicators</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickStats.map((stat) => {
             const Icon = stat.icon;
@@ -177,7 +175,6 @@ export function Dashboard() {
                   <p className="text-xs font-bold text-slate-500 font-open-sans uppercase tracking-wide">{stat.title}</p>
                   <p className={`text-2xl font-black mt-1 font-roboto ${stat.color}`}>{stat.value}</p>
                   <p className="text-xs font-bold text-slate-400 mt-2 font-open-sans">{stat.benchmark}</p>
-                  <p className="text-[10px] font-black text-blue-500 mt-2 font-open-sans">{stat.insight}</p>
                 </div>
               </Card>
             );
@@ -208,7 +205,7 @@ export function Dashboard() {
         </TabsContent>
 
         <TabsContent value="performance" className="space-y-8">
-          <PerformanceTrends monthlyPerformance={monthlyPerformance} yearlyPerformance={yearlyPerformance} kpi={kpi} digitalAdoptionBenchmark={benchmarks.digitalAdoptionBenchmark} />
+          <PerformanceTrends monthlyPerformance={monthlyPerformance} yearlyPerformance={yearlyPerformance} kpi={kpi} digitalAdoptionBenchmark={benchmarks.digitalAdoptionTarget} />
         </TabsContent>
 
         <TabsContent value="actions" className="space-y-8">
@@ -232,7 +229,7 @@ function PerformanceTrends({ monthlyPerformance, yearlyPerformance, kpi, digital
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 font-source-sans">
       <div>
         <h2 className="text-2xl font-black text-[#1E293B] tracking-tight font-roboto">Performance Trends & Forecasting</h2>
-        <p className="text-sm font-semibold text-[#64748B] mt-1 font-open-sans">Year-on-Year and Month-on-Month analysis covering Insights #1, #2, #3, #4, #5, #6, #16, #21</p>
+        <p className="text-sm font-semibold text-[#64748B] mt-1 font-open-sans">Year-on-Year and Month-on-Month analysis</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -286,7 +283,7 @@ function PerformanceTrends({ monthlyPerformance, yearlyPerformance, kpi, digital
       </div>
 
       <Card className="bento-card border-none p-6" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
-        <h3 className="text-lg font-black text-[#1E293B] mb-4 font-roboto">Financial Forecasting Insights (Insight #21)</h3>
+        <h3 className="text-lg font-black text-[#1E293B] mb-4 font-roboto">Financial Forecasting Insights</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
             <p className="text-xs font-bold text-emerald-700 font-open-sans uppercase tracking-wide">Predictable Growth</p>

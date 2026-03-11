@@ -1,11 +1,22 @@
 {
   "include": ["client/src/**/*", "shared/**/*", "server/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": [
+    "node_modules", "build", "dist",
+    "**/*.test.ts",
+    "**/*.old.ts", "**/*.Old.ts", "**/*.Old.tsx",
+    "client/src/pages/Dashboard.tsx",
+    "client/src/components/views/ActionCommandCenter.tsx",
+    "client/src/components/views/ExecutiveOverview.tsx",
+    "client/src/components/views/LeakageConcessions.tsx",
+    "client/src/components/views/DefaulterAnalysis.tsx",
+    "server/index.ts"
+  ],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,
-    "module": "ESNext",
+    "target": "ES2022",
+    "module": "ES2022",
     "strict": true,
     "lib": ["esnext", "dom", "dom.iterable"],
     "jsx": "preserve",

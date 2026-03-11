@@ -7,12 +7,8 @@ import type {
   YearlyPerformance,
   DefaulterAnalysis,
   ConcessionAnalysis,
-  TcDropoutAnalysis,
-  ClassWiseAnalysis,
-  InstalmentAnalysis,
-  RevenueWaterfall,
-  ActionRecommendation,
-  FeePayMaster,
+  PaymentModeData,
+  AdmissionTypeData,
   StudentSummary,
 } from "@/lib/types";
 
@@ -27,19 +23,19 @@ async function fetchApi<T>(endpoint: string): Promise<T> {
 }
 
 // Full Dashboard Hook (all data in one call)
-export function useDashboard() {
+export function useDashboard(yearFilter?: string) {
   return useQuery<DashboardData>({
-    queryKey: ["dashboard"],
-    queryFn: () => fetchApi<DashboardData>("/dashboard"),
+    queryKey: ["dashboard", yearFilter],
+    queryFn: () => fetchApi<DashboardData>(`/dashboard${yearFilter ? `?year=${yearFilter}` : ''}`),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
 // KPI Summary Hook
-export function useKPISummary() {
+export function useKPISummary(yearFilter?: string) {
   return useQuery<KPISummary>({
-    queryKey: ["kpi", "summary"],
-    queryFn: () => fetchApi<KPISummary>("/kpi/summary"),
+    queryKey: ["kpi", "summary", yearFilter],
+    queryFn: () => fetchApi<KPISummary>(`/kpi/summary${yearFilter ? `?year=${yearFilter}` : ''}`),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -72,73 +68,37 @@ export function useYearlyPerformance() {
 }
 
 // Defaulter Analysis Hook
-export function useDefaulterAnalysis() {
+export function useDefaulterAnalysis(yearFilter?: string) {
   return useQuery<DefaulterAnalysis>({
-    queryKey: ["defaulters", "analysis"],
-    queryFn: () => fetchApi<DefaulterAnalysis>("/defaulters/analysis"),
+    queryKey: ["defaulters", "analysis", yearFilter],
+    queryFn: () => fetchApi<DefaulterAnalysis>(`/defaulters/analysis${yearFilter ? `?year=${yearFilter}` : ''}`),
     staleTime: 5 * 60 * 1000,
   });
 }
 
 // Concession Analysis Hook
-export function useConcessionAnalysis() {
+export function useConcessionAnalysis(yearFilter?: string) {
   return useQuery<ConcessionAnalysis>({
-    queryKey: ["concessions", "analysis"],
-    queryFn: () => fetchApi<ConcessionAnalysis>("/concessions/analysis"),
+    queryKey: ["concessions", "analysis", yearFilter],
+    queryFn: () => fetchApi<ConcessionAnalysis>(`/concessions/analysis${yearFilter ? `?year=${yearFilter}` : ''}`),
     staleTime: 5 * 60 * 1000,
   });
 }
 
-// TC/Dropout Analysis Hook
-export function useTcDropoutAnalysis() {
-  return useQuery<TcDropoutAnalysis>({
-    queryKey: ["tc-dropout", "analysis"],
-    queryFn: () => fetchApi<TcDropoutAnalysis>("/tc-dropout/analysis"),
+// Payment Mode Analysis Hook
+export function usePaymentModeAnalysis(yearFilter?: string) {
+  return useQuery<PaymentModeData[]>({
+    queryKey: ["payment-modes", "analysis", yearFilter],
+    queryFn: () => fetchApi<PaymentModeData[]>(`/payment-modes/analysis${yearFilter ? `?year=${yearFilter}` : ''}`),
     staleTime: 5 * 60 * 1000,
   });
 }
 
-// Class-wise Analysis Hook
-export function useClassWiseAnalysis() {
-  return useQuery<ClassWiseAnalysis[]>({
-    queryKey: ["class-wise", "analysis"],
-    queryFn: () => fetchApi<ClassWiseAnalysis[]>("/class-wise/analysis"),
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-// Installment Analysis Hook
-export function useInstallmentAnalysis() {
-  return useQuery<InstalmentAnalysis[]>({
-    queryKey: ["installments", "analysis"],
-    queryFn: () => fetchApi<InstalmentAnalysis[]>("/installments/analysis"),
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-// Revenue Waterfall Hook
-export function useRevenueWaterfall() {
-  return useQuery<RevenueWaterfall>({
-    queryKey: ["revenue", "waterfall"],
-    queryFn: () => fetchApi<RevenueWaterfall>("/revenue/waterfall"),
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-// Fee Pay Masters Hook
-export function useFeePayMasters() {
-  return useQuery<FeePayMaster[]>({
-    queryKey: ["fee-pay-masters"],
-    queryFn: () => fetchApi<FeePayMaster[]>("/fee-pay-masters"),
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-// Recommendations Hook
-export function useRecommendations() {
-  return useQuery<ActionRecommendation[]>({
-    queryKey: ["recommendations"],
-    queryFn: () => fetchApi<ActionRecommendation[]>("/recommendations"),
+// Admission Type Analysis Hook
+export function useAdmissionTypeAnalysis(yearFilter?: string) {
+  return useQuery<AdmissionTypeData[]>({
+    queryKey: ["admission-types", "analysis", yearFilter],
+    queryFn: () => fetchApi<AdmissionTypeData[]>(`/admission-types/analysis${yearFilter ? `?year=${yearFilter}` : ''}`),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -148,7 +108,7 @@ export function useStudents() {
   return useQuery<StudentSummary[]>({
     queryKey: ["students"],
     queryFn: () => fetchApi<StudentSummary[]>("/students"),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
   });
 }
 
@@ -156,11 +116,11 @@ export function useStudents() {
 export function formatCurrency(amount: number, compact = false): string {
   if (compact) {
     if (amount >= 10000000) {
-      return `₹${(amount / 10000000).toFixed(2)}Cr`;
+      return `₹${parseFloat((amount / 10000000).toFixed(2))}Cr`;
     } else if (amount >= 100000) {
-      return `₹${(amount / 100000).toFixed(1)}L`;
+      return `₹${parseFloat((amount / 100000).toFixed(2))}L`;
     } else if (amount >= 1000) {
-      return `₹${(amount / 1000).toFixed(1)}K`;
+      return `₹${parseFloat((amount / 1000).toFixed(1))}k`;
     }
   }
   return new Intl.NumberFormat("en-IN", {

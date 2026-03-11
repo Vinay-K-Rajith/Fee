@@ -3,7 +3,7 @@ config();
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.js";
 import { serveStatic } from "./static.js";
-import { createServer } from "http";
+import { createServer } from "node:http";
 
 const app = express();
 const httpServer = createServer(app);
@@ -81,23 +81,21 @@ export default app;
 
 // Only listen if running locally
 if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
-  (async () => {
-    const { setupVite } = await import("./vite.js");
-    await setupVite(httpServer, app);
+  const { setupVite } = await import("./vite.js");
+  await setupVite(httpServer, app);
 
-    // Serve the app on the configured port, defaulting to 5000.
-    // Uses localhost (127.0.0.1) for Windows compatibility.
-    const port = parseInt(process.env.PORT || "5000", 10);
-    httpServer.listen(
-      {
-        port,
-        host: "127.0.0.1",
-      },
-      () => {
-        log(`serving on http://localhost:${port}`);
-      },
-    );
-  })();
+  // Serve the app on the configured port, defaulting to 5000.
+  // Uses 127.0.0.1 for Windows compatibility.
+  const port = Number.parseInt(process.env.PORT || "5000", 10);
+  httpServer.listen(
+    {
+      port,
+      host: "127.0.0.1",
+    },
+    () => {
+      log(`serving on http://localhost:${port}`);
+    },
+  );
 } else if (!process.env.VERCEL) {
   // on production without Vercel, serve static
   serveStatic(app);

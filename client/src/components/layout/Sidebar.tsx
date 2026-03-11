@@ -5,14 +5,17 @@ import {
   UserX,
   Droplet,
   Sparkles,
-  BarChart3
+  BarChart3,
+  TrendingUp,
+  PieChart
 } from "lucide-react";
 
 const navItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/", badge: "All Insights" },
-  { id: "overview", label: "Executive Overview", icon: BarChart3, path: "/overview" },
-  { id: "defaulters", label: "Defaulter Analysis", icon: UserX, path: "/defaulters" },
-  { id: "leakage", label: "Leakage & Concessions", icon: Droplet, path: "/leakage" },
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/" },
+  { id: "collections", label: "Collection Performance", icon: TrendingUp, path: "/collections" },
+  { id: "defaulters", label: "Defaulter Analytics", icon: UserX, path: "/defaulters", badge: "Critical" },
+  { id: "concessions", label: "Concessions & Losses", icon: Droplet, path: "/concessions" },
+  { id: "demographics", label: "Demographics & Ops", icon: PieChart, path: "/demographics" },
   { id: "ai-insights", label: "AI Insights", icon: Sparkles, path: "/ai-insights" },
 ];
 
@@ -36,14 +39,13 @@ export function Sidebar() {
           return (
             <Link key={item.id} href={item.path}>
               <div
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group cursor-pointer ${isActive
-                  ? "bg-[#E6F0F9] text-[#1E293B] font-bold"
-                  : "text-[#5A6474] hover:bg-slate-50 font-medium"
-                  }`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 cursor-pointer text-[13.5px] ${isActive
+                  ? 'bg-blue-50 text-blue-700 font-semibold'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                }`}
                 data-testid={`nav-${item.id}`}
               >
-                <Icon className={`h-5 w-5 transition-colors ${isActive ? "text-[#3B82F6]" : "text-[#5A6474] group-hover:text-[#1E293B]"
-                  }`} />
+                <Icon className={`h-4.5 w-4.5 shrink-0 transition-colors ${isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-700'}`} strokeWidth={isActive ? 2 : 1.7} />
                 <span className="text-sm">{item.label}</span>
                 {item.badge && (
                   <span className={`ml-auto text-[10px] font-black px-2 py-0.5 rounded-full ${item.id === "ai-insights"
@@ -59,17 +61,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Analytics video — sits in the empty space between nav and footer (bare layout) */}
-      <div className="px-4 py-2 flex justify-center">
-        <video
-          src="/Analytics.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-40 rounded-lg object-cover opacity-80 mix-blend-multiply"
-        />
-      </div>
+
 
       <div className="p-4 border-t border-[#E2E8F0]">
         <div className="bg-slate-50 rounded-xl p-4 text-sm border border-[#E2E8F0]">
