@@ -2,7 +2,7 @@ import type { Express } from "express";
 import type { Server } from "node:http";
 import { dataLoader } from "./dataLoader.js";
 import { generateAiResponse } from "./services/ai.service.js";
-
+import { registerAiRoutes } from "./routes/ai.js";
 
 export function registerRoutes(
   httpServer: Server,
@@ -10,6 +10,9 @@ export function registerRoutes(
 ): Server {
   // Initialize data loader
   dataLoader.loadData();
+  
+  // Register AI endpoints
+  registerAiRoutes(app);
 
   // ========================================
   // Dashboard & KPI Endpoints

@@ -156,13 +156,14 @@ export function CollectionPerformance() {
           </div>
           <div className="h-[340px]">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={instalmentData} layout="vertical" margin={{ top: 10, right: 50, bottom: 10, left: 10 }}>
+              <ComposedChart data={instalmentData} layout="vertical" margin={{ top: 10, right: 50, bottom: 20, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={GRID_COLOR} />
                 <XAxis type="number" tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} />
                 <YAxis dataKey="name" type="category" tick={{ ...tickStyle, fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} width={44} />
                 <Tooltip content={<SmartTooltip />} />
-                <Bar dataKey="expected" name="Scheduled" fill="#E2E8F0" radius={[0, 4, 4, 0]} barSize={14} />
-                <Bar dataKey="collected" name="Collected" fill={BRAND_INDIGO} radius={[0, 4, 4, 0]} barSize={14} />
+                <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 500 }} />
+                <Bar dataKey="expected" name="Expected/Scheduled" fill="#16A34A" radius={[0, 4, 4, 0]} barSize={14} />
+                <Bar dataKey="collected" name="Actually Collected" fill={BRAND_INDIGO} radius={[0, 4, 4, 0]} barSize={14} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
