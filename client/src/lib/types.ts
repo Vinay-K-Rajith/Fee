@@ -93,6 +93,18 @@ export interface DefaulterAnalysis {
   locationWise: LocationDefaulter[];
   classWise: ClassDefaulter[];
   defaulterList: DefaulterListItem[];
+  riskAnalysis?: PaymentHabit[];
+  goodBehaviors?: PaymentHabit[];
+}
+
+export interface PaymentHabit {
+  admissionNo: string;
+  name: string;
+  className: string;
+  totalLateFeePaid: number;
+  timesLate: number;
+  totalPaid: number;
+  totalDefaulterBalance: number;
 }
 
 // Concession Analysis

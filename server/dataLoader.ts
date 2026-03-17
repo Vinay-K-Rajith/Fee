@@ -49,6 +49,9 @@ export interface CollectionRecord {
 // ========================================
 
 class DataLoader {
+  public get collection2024() { return this.collection2024Data; }
+  public get summaryData() { return this.studentSummaryData; }
+  
   private collection2023Data: CollectionRecord[] = [];
   private collection2024Data: CollectionRecord[] = [];
   private collection2025Data: CollectionRecord[] = [];
@@ -675,29 +678,85 @@ class DataLoader {
       }))
       .sort((a, b) => b.defaulterCount - a.defaulterCount);
 
-    return {
-      totalDefaulters: defaulters.length,
-      totalBalance: defaulters.reduce((sum, d) => sum + d.balanceAmount, 0),
-      occupationWise,
-      locationWise,
-      classWise,
-      defaulterList: defaulters.slice(0, 100).map(d => ({
-        admissionNo: d.admissionNo,
-        name: d.name,
-        className: d.className,
-        fatherName: d.fatherName,
-        balance: d.balanceAmount,
-      })),
-    };
-  }
+      // 3 Year Payment Habits Analysis
+      const allHistoricalData = this.getAllCollectionData(); // Force 3 years data without yearFilter
+      
+      const habitMap = new Map<string, {
+        admissionNo: string;
+        name: string;
+        className: string;
+        totalLateFeePaid: number;
+        timesLate: number;
+        totalPaid: number;
+        totalDefaulterBalance: number;
+      }>();
+      
+      allHistoricalData.forEach(record => {
+        const admNo = String(record.admNo);
+        if (!habitMap.has(admNo)) {
+          habitMap.set(admNo, {
+            admissionNo: admNo,
+            name: record.studentName || 'Unknown',
+            className: record.classSection || 'Unknown',
+            totalLateFeePaid: 0,
+            timesLate: 0,
+            totalPaid: 0,
+            totalDefaulterBalance: 0,
+          });
+        }
+        const data = habitMap.get(admNo)!;
+        if (record.lateFee > 0) {
+          data.totalLateFeePaid += record.lateFee;
+          data.timesLate += 1;
+        }
+        data.totalPaid += record.totalPaid || 0;
+        data.totalDefaulterBalance += (record.defaulterTotal || 0); // Not accumulating as it's stateful, but for heuristic it works. Let's instead use it as max observed if we want, or just sum it to rank. We'll use sum for ranking.
+      });
 
-  // ========================================
-  // Concession Analysis
-  // ========================================
+      const allHabits = Array.from(habitMap.values());
+      
+      // Risk Analysis (Worst payers over 3 years) - heavily late or high balance
+      const riskAnalysis = [...allHabits]
+        .filter(h => h.timesLate > 0)
+        .sort((a, b) => {
+          if (b.timesLate !== a.timesLate) {
+            return b.timesLate - a.timesLate;
+          }
+          return b.totalLateFeePaid - a.totalLateFeePaid;
+        })
+        .slice(0, 10);
+        
+      // Good Payment Behaviors (Best payers over 3 years) - no late fees, no balance, highest paid
+      const goodBehaviors = [...allHabits]
+        .filter(h => h.timesLate === 0 && h.totalDefaulterBalance === 0 && h.totalPaid > 0)
+        .sort((a, b) => b.totalPaid - a.totalPaid)
+        .slice(0, 10);
 
-  getConcessionAnalysis(yearFilter?: string) {
-    const students = this.getFilteredStudentSummary(yearFilter);
-    const allCollections = this.getFilteredCollections(yearFilter);
+      return {
+        totalDefaulters: defaulters.length,
+        totalBalance: defaulters.reduce((sum, d) => sum + d.balanceAmount, 0),
+        occupationWise,
+        locationWise,
+        classWise,
+        defaulterList: defaulters.slice(0, 100).map(d => ({
+          admissionNo: d.admissionNo,
+          name: d.name,
+          className: d.className,
+          fatherName: d.fatherName,
+          balance: d.balanceAmount,
+        })),
+        riskAnalysis,
+        goodBehaviors,
+      };
+    }
+
+    // ========================================
+    // Concession Analysis
+    // ========================================
+
+    getConcessionAnalysis(yearFilter?: string) {
+      const students = this.getFilteredStudentSummary(yearFilter);
+      const allCollections = this.getFilteredCollections(yearFilter);
 
     const studentsWithConcession = students.filter(s => s.conAmount > 0);
     const totalConcession = students.reduce((sum, s) => sum + s.conAmount, 0);

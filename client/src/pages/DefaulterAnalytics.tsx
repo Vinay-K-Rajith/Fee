@@ -149,13 +149,78 @@ export function DefaulterAnalytics() {
       </div>
 
       {/* Defaulters table */}
-      <Card className="bento-card">
+      <Card className="bento-card mt-8">
         <div className="mb-5 border-b border-slate-100 pb-4">
           <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Fee Defaulter Tracker</h3>
           <p className="text-xs text-slate-500">Individual student outstanding balances. Schools reduce repeat defaulters by 25% with structured follow-ups.</p>
         </div>
         <DefaultersTable />
       </Card>
+
+      {/* 3-Year Payment Habits Analysis */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        <Card className="bento-card">
+          <div className="mb-5 border-b border-slate-100 pb-4">
+            <h3 className="text-[15px] font-semibold text-slate-800 mb-1">High Risk Students</h3>
+            <p className="text-xs text-slate-500">Top 10 students with consistent poor payment behaviors over 3 years.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="py-3 font-semibold text-slate-800">Student</th>
+                  <th className="py-3 font-semibold text-slate-800">Class</th>
+                  <th className="py-3 font-semibold text-slate-800 text-right">Times Late</th>
+                  <th className="py-3 font-semibold text-slate-800 text-right">Late Fees</th>
+                </tr>
+              </thead>
+              <tbody>
+                {defaulterAnalysis.riskAnalysis?.map((student, idx) => (
+                  <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                    <td className="py-3 font-medium text-slate-700">{student.name}</td>
+                    <td className="py-3 text-slate-600">{student.className}</td>
+                    <td className="py-3 text-right text-red-600 font-medium">{student.timesLate}</td>
+                    <td className="py-3 text-right text-slate-600">{formatCurrency(student.totalLateFeePaid)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        <Card className="bento-card">
+          <div className="mb-5 border-b border-slate-100 pb-4">
+            <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Excellent Payers</h3>
+            <p className="text-xs text-slate-500">Top 10 prompt students consistently paying fees on time for 3 years.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="py-3 font-semibold text-slate-800">Student</th>
+                  <th className="py-3 font-semibold text-slate-800">Class</th>
+                  <th className="py-3 font-semibold text-slate-800 text-right">Total Paid</th>
+                  <th className="py-3 font-semibold text-slate-800 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {defaulterAnalysis.goodBehaviors?.map((student, idx) => (
+                  <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                    <td className="py-3 font-medium text-slate-700">{student.name}</td>
+                    <td className="py-3 text-slate-600">{student.className}</td>
+                    <td className="py-3 text-right text-slate-600">{formatCurrency(student.totalPaid)}</td>
+                    <td className="py-3 text-right text-green-600 font-medium align-middle">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border-green-200">
+                        Zero Defaulter
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
