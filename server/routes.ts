@@ -2,6 +2,7 @@ import type { Express } from "express";
 import type { Server } from "node:http";
 import { dataLoader } from "./dataLoader.js";
 import { generateAiResponse } from "./services/ai.service.js";
+import { computeDataStatistics } from "./services/dataStats.service.js";
 import { registerAiRoutes } from "./routes/ai.js";
 
 export function registerRoutes(
@@ -10,7 +11,7 @@ export function registerRoutes(
 ): Server {
   // Initialize data loader
   dataLoader.loadData();
-  
+
   // Register AI endpoints
   registerAiRoutes(app);
 
@@ -109,7 +110,7 @@ export function registerRoutes(
   });
 
   // Salary slab-wise defaulters (removed - not in new data structure)
-  
+
   // Class-wise defaulters
   app.get("/api/defaulters/class", (req, res) => {
     try {
@@ -190,7 +191,7 @@ export function registerRoutes(
     try {
       const { year } = req.params;
       let data;
-      
+
       switch (year) {
         case '2023':
         case '2023-24':
@@ -210,7 +211,7 @@ export function registerRoutes(
         default:
           return res.status(400).json({ error: "Invalid year parameter. Use 2023, 2024, 2025, or all" });
       }
-      
+
       res.json(data);
     } catch (error) {
       console.error("Error fetching collections:", error);
@@ -308,32 +309,40 @@ export function registerRoutes(
   // AI Chat Endpoint
   // ========================================
 
-  // POST /api/ai/chat
-  app.post("/api/ai/chat", async (req, res) => {
+  // POST /api/ai/chat (General chat endpoint)
+  app.post("/api/ai/chat-general", async (req, res) => {
     try {
-      const { prompt, context } = req.body;
+      const { prompt } = req.body;
 
       if (!prompt || typeof prompt !== "string") {
         return res.status(400).json({ error: "Prompt is required" });
       }
 
-      // Supply the AI with the literal directory of all students so it can answer individual-level queries
-      const studentsData = dataLoader.getStudentSummaryData().map(s => ({
-        id: s.admissionNo,
-        name: s.name,
-        class: s.className,
-        father: s.fatherName,
-        due: s.dueAmount,
-        paid: s.paidAmount,
-        balance: s.balanceAmount
-      }));
+      // Compute statistics for context
+      const dataStats = computeDataStatistics(
+        dataLoader.summaryData,
+        dataLoader.getAllCollectionData()
+      );
 
-      const enrichedContext = context
-        ? `${context}\n\nSTUDENT DATA DIRECTORY (Use this to retrieve details on individual students):\n${JSON.stringify(studentsData)}`
-        : `STUDENT DATA DIRECTORY:\n${JSON.stringify(studentsData)}`;
+      // Build comprehensive context with all computed analyses
+      const comprehensiveContext = {
+        kpiAllYears: {
+          "2023-24": dataLoader.getKPISummary("2023-24"),
+          "2024-25": dataLoader.getKPISummary("2024-25"),
+          "2025-26": dataLoader.getKPISummary("2025-26"),
+          "all": dataLoader.getKPISummary(),
+        },
+        yearlyPerformance: dataLoader.getYearlyPerformance(),
+        defaulterAnalysis: dataLoader.getDefaulterAnalysis(),
+        concessionAnalysis: dataLoader.getConcessionAnalysis(),
+        paymentModeAnalysis: dataLoader.getPaymentModeAnalysis(),
+        extendedAnalysis: dataLoader.getExtendedAnalysis(),
+      };
 
-      const response = await generateAiResponse(prompt, enrichedContext);
-      res.json({ text: response });
+      // Generate response with full context
+      const aiResponse = await generateAiResponse(prompt, dataStats, comprehensiveContext);
+
+      res.json({ text: aiResponse.response, insights: aiResponse.insights, recommendations: aiResponse.recommendations });
     } catch (error) {
       console.error("AI chat error:", error);
       res.status(500).json({ error: "AI assistant failed to respond" });
