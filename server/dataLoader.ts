@@ -938,13 +938,22 @@ class DataLoader {
     // Cheque Bounces — count records where Cheque Bounce Amount > 0
     const chequeBounces = allCollections.filter(r => (r.chequeBounceAmount || 0) > 0).length;
 
-    // Re-Admissions Count
-    const reAdmissions = allCollections.filter(r => 
-      String(r.concessionType).toLowerCase().includes('readmission') || 
-      String(r.receiptMode).toLowerCase().includes('readmission') ||
-      String(r.admissionType).toLowerCase().includes('readmission') ||
-      String(r.admissionType).toLowerCase() === 'old' 
-    ).length; 
+    // Re-Admissions Count - count unique students who made readmission payments
+    const reAdmissionsSet = new Set<string>();
+    allCollections.forEach(r => {
+      if (
+        (r.totalPaid > 0) && // Only count if they actually paid
+        (
+          String(r.concessionType).toLowerCase().includes('readmission') || 
+          String(r.receiptMode).toLowerCase().includes('readmission') ||
+          String(r.admissionType).toLowerCase().includes('readmission') ||
+          String(r.admissionType).toLowerCase() === 'old'
+        )
+      ) {
+        reAdmissionsSet.add(String(r.admNo)); // Add unique admission number
+      }
+    });
+    const reAdmissions = reAdmissionsSet.size; 
 
     // Mock Delay Time Period analysis
     const delayTimeBuckets = [
