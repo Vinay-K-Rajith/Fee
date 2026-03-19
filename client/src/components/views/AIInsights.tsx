@@ -19,7 +19,7 @@ interface ChatMessage {
 const WELCOME_MESSAGE: ChatMessage = {
   id: 'welcome',
   role: 'assistant',
-  content: 'Hi! I am your **Fee Insights AI Assistant**. I have full context on all **3 years** of school fee collection data (2023-24, 2024-25, 2025-26). Ask me anything — I can generate tables, comparisons, and actionable insights for you.'
+  content: 'Hi! I am your **Fee Insights AI Assistant**.  Ask me anything — I can generate tables, comparisons, and actionable insights for you.'
 };
 
 function loadChatHistory(): ChatMessage[] {
