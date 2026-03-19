@@ -535,7 +535,6 @@ class DataLoader {
         collectionRate,
         cumulativeCollection,
         defaulterCount: data.defaulterCount,
-        newDefaulters: Math.max(0, data.defaulterCount - (idx > 0 ? 10 : 0)),
         tcDropouts: 0,
         concessionGiven: data.concessionGiven,
       };
