@@ -227,8 +227,16 @@ export function registerRoutes(
   app.get("/api/dashboard", (req, res) => {
     try {
       const yearFilter = req.query.year as string;
+      
+      // Determine previous year to fetch previous KPI comparisons
+      let prevYearFilter: string | undefined = undefined;
+      if (yearFilter === '2025-26') prevYearFilter = '2024-25';
+      else if (yearFilter === '2024-25') prevYearFilter = '2023-24';
+
       const dashboard = {
         kpi: dataLoader.getKPISummary(yearFilter),
+        previousKpi: prevYearFilter ? dataLoader.getKPISummary(prevYearFilter) : null,
+        previousMonthlyPerformance: prevYearFilter ? dataLoader.getMonthlyPerformance(prevYearFilter) : null,
         benchmarks: dataLoader.getBenchmarks(),
         monthlyPerformance: dataLoader.getMonthlyPerformance(yearFilter),
         yearlyPerformance: dataLoader.getYearlyPerformance(), // Kept unfiltered since we want to see YoY usually
@@ -342,7 +350,7 @@ export function registerRoutes(
       // Generate response with full context
       const aiResponse = await generateAiResponse(prompt, dataStats, comprehensiveContext);
 
-      res.json({ text: aiResponse.response, insights: aiResponse.insights, recommendations: aiResponse.recommendations });
+      res.json({ text: aiResponse.response, insights: aiResponse.insights, recommendations: aiResponse.recommendations, chartData: aiResponse.chartData });
     } catch (error) {
       console.error("AI chat error:", error);
       res.status(500).json({ error: "AI assistant failed to respond" });

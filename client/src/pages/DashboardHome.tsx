@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { useDashboard, formatCurrency, formatPercentage } from '@/hooks/use-api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DefaulterLocationMap } from '@/components/views/DefaulterLocationMap';
-import { Target, Wallet, AlertCircle, TrendingUp, Sparkles, Lightbulb } from 'lucide-react';
+import { Target, Wallet, AlertCircle, TrendingUp, TrendingDown, Sparkles, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -32,12 +32,20 @@ export function DashboardHome() {
     );
   }
 
-  const { kpi, benchmarks, yearlyPerformance } = dashboard;
+  const { kpi, previousKpi, benchmarks, yearlyPerformance } = dashboard;
+
+  const calculateYoy = (current: number, previous: number | undefined) => {
+    if (!previous) return null;
+    if (previous === 0) return current > 0 ? 100 : 0;
+    const diff = current - previous;
+    return (diff / previous) * 100;
+  };
 
   const kpiCards = [
     {
       title: 'Total Collection',
       value: formatCurrency(kpi.totalFeeCollection, true),
+      yoy: calculateYoy(kpi.totalFeeCollection, previousKpi?.totalFeeCollection),
       benchmark: `${formatPercentage(kpi.collectionRate)} collection rate`,
       target: `Industry benchmark: ${benchmarks.collectionRateBenchmark}%`,
       status: kpi.collectionRate >= benchmarks.collectionRateBenchmark ? 'good' : 'alert',
@@ -45,7 +53,8 @@ export function DashboardHome() {
     },
     {
       title: 'Active Defaulters',
-      value: kpi.totalDefaulters.toLocaleString('en-IN'),
+      value: kpi.activeDefaultersCount.toLocaleString('en-IN'),
+      yoy: calculateYoy(kpi.activeDefaultersCount, previousKpi?.activeDefaultersCount),
       benchmark: `${formatPercentage(kpi.defaulterRate)} default rate`,
       target: `Target: <${benchmarks.defaulterRateBenchmark}%`,
       status: kpi.defaulterRate <= benchmarks.defaulterRateBenchmark ? 'good' : 'alert',
@@ -54,6 +63,7 @@ export function DashboardHome() {
     {
       title: 'Digital Adoption',
       value: `${kpi.digitalAdoption.toFixed(1)}%`,
+      yoy: calculateYoy(kpi.digitalAdoption, previousKpi?.digitalAdoption),
       benchmark: `of payments are digital`,
       target: `Target: ${benchmarks.digitalAdoptionTarget}%`,
       status: kpi.digitalAdoption >= benchmarks.digitalAdoptionTarget ? 'good' : 'alert',
@@ -105,9 +115,19 @@ export function DashboardHome() {
                     {card.title}
                   </p>
                   <div className="flex items-end justify-between gap-2">
-                    <p className="text-[2rem] font-bold leading-none text-slate-900 tabular-nums">
-                      {card.value}
-                    </p>
+                    <div>
+                      <p className="text-[2rem] font-bold leading-none text-slate-900 tabular-nums">
+                        {card.value}
+                      </p>
+                      {card.yoy !== null && card.yoy !== undefined && (
+                        <div className="mt-2 flex items-center gap-1.5">
+                          <span className={`text-[12px] font-medium flex items-center ${card.yoy >= 0 ? (card.title === 'Active Defaulters' ? 'text-rose-600' : 'text-emerald-600') : (card.title === 'Active Defaulters' ? 'text-emerald-600' : 'text-rose-600')}`}>
+                            {card.yoy >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                            {Math.abs(card.yoy).toFixed(1)}% YoY
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     <div className={`p-2.5 rounded-lg ${st.bg} border ${st.border} shrink-0 mb-0.5`}>
                       <Icon className="w-5 h-5" style={{ color: st.color }} strokeWidth={1.8} />
                     </div>
@@ -156,7 +176,7 @@ export function DashboardHome() {
             <div className="space-y-3 flex-1">
               {[
                 { text: `Collection rate of ${formatPercentage(kpi.collectionRate)} is ${kpi.collectionRate >= benchmarks.collectionRateBenchmark ? 'above' : 'below'} the ${benchmarks.collectionRateBenchmark}% industry benchmark — strong fee recovery.`, delay: 0.1 },
-                { text: `${kpi.totalDefaulters} active defaulters represent ${formatPercentage(kpi.defaulterRate)} of enrolled students. Targeted outreach to hotspot areas can reduce this further.`, delay: 0.25 },
+                  { text: `${kpi.activeDefaultersCount} active defaulters represent ${formatPercentage(kpi.defaulterRate)} of enrolled students. Targeted outreach to hotspot areas can reduce this further.`, delay: 0.25 },
                 { text: `Digital adoption at ${kpi.digitalAdoption.toFixed(1)}% — consider UPI reminders and auto-debit mandates to push adoption past the ${benchmarks.digitalAdoptionTarget}% target.`, delay: 0.4 }
               ].map((insight, idx) => (
                 <motion.div 

@@ -14,6 +14,7 @@ import {
 import { AlertTriangle, TrendingDown, Users, Clock, MapPin, DollarSign } from "lucide-react";
 import { useDefaulterAnalysis, formatPercentage } from "@/hooks/use-api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SmartTooltip, CustomBarLabelVertical } from "@/components/charts/chartUtils";
 
 export function DefaulterAnalysis() {
   const { data: analysis, isLoading, error } = useDefaulterAnalysis();
@@ -168,7 +169,7 @@ export function DefaulterAnalysis() {
           </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={occupationData} layout="vertical">
+              <BarChart data={occupationData} layout="vertical" margin={{ top: 10, right: 40, bottom: 10, left: 100 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
                 <XAxis type="number" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 11, fontWeight: 800}} tickFormatter={(v) => `${v}%`} />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#1E293B', fontSize: 10, fontWeight: 900}} width={100} />
@@ -180,7 +181,7 @@ export function DefaulterAnalysis() {
                     'Default Rate'
                   ]}
                 />
-                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={24} label={<CustomBarLabelVertical name="Default Rate" />}>
                   {occupationData.map((entry) => (
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
@@ -200,7 +201,7 @@ export function DefaulterAnalysis() {
           </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={classData} layout="vertical">
+              <BarChart data={classData} layout="vertical" margin={{ top: 10, right: 40, bottom: 10, left: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
                 <XAxis type="number" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 11, fontWeight: 800}} tickFormatter={(v) => `${v}%`} />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#1E293B', fontSize: 11, fontWeight: 900}} width={80} />
@@ -212,7 +213,7 @@ export function DefaulterAnalysis() {
                     'Default Rate'
                   ]}
                 />
-                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
+                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={26} label={<CustomBarLabelVertical name="Default Rate" />}>
                   {classData.map((entry) => (
                     <Cell key={entry.name} fill={entry.color} />
                   ))}

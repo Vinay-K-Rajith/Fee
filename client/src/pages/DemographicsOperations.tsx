@@ -10,11 +10,11 @@ import { useDashboard, formatCurrency, formatPercentage } from '@/hooks/use-api'
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Calendar, CreditCard, Wallet, Banknote,
-  AlertCircle, Clock, CheckCircle2, RefreshCcw, TrendingUp,
+  AlertCircle, Clock, CheckCircle2, RefreshCcw, TrendingUp, TrendingDown,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BRAND_INDIGO, BRAND_GREEN, STATUS, CHART_COLORS, GRID_COLOR, tickStyle } from '@/theme';
-import { SmartTooltip } from '@/components/charts/chartUtils';
+import { SmartTooltip, CustomBarLabel } from '@/components/charts/chartUtils';
 
 const WHITE_TIP = {
   background: '#fff',
@@ -45,7 +45,14 @@ export function DemographicsOperations() {
     );
   }
 
-  const { paymentModeAnalysis, defaulterAnalysis, benchmarks } = dashboard;
+  const { paymentModeAnalysis, defaulterAnalysis, benchmarks, kpi, previousKpi } = dashboard;
+
+  const calculateYoy = (current: number, previous: number | undefined) => {
+    if (!previous) return null;
+    if (previous === 0) return current > 0 ? 100 : 0;
+    const diff = current - previous;
+    return (diff / previous) * 100;
+  };
 
   const digitalModes = ['Online', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking'];
   const totalTrans = paymentModeAnalysis.reduce((s: number, m: any) => s + m.transactionCount, 0);
@@ -96,6 +103,7 @@ export function DemographicsOperations() {
             icon: <CreditCard className="w-5 h-5" />,
             iconBg: 'bg-blue-50', iconColor: 'text-blue-500',
             accent: '#3B82F6',
+            yoy: calculateYoy(totalTrans, previousKpi ? (previousKpi.paymentModes ? Object.values(previousKpi.paymentModes).reduce((a:any,b:any) => a+b, 0) : 0) : undefined)
           },
           {
             label: 'Digital Adoption',
@@ -104,6 +112,7 @@ export function DemographicsOperations() {
             icon: <Banknote className="w-5 h-5" />,
             iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500',
             accent: BRAND_GREEN,
+            yoy: calculateYoy(digitalAdoptionRate, previousKpi?.digitalAdoption)
           },
           {
             label: 'Avg Transaction Value',
@@ -112,16 +121,27 @@ export function DemographicsOperations() {
             icon: <Wallet className="w-5 h-5" />,
             iconBg: 'bg-violet-50', iconColor: 'text-violet-500',
             accent: '#7C3AED',
+            yoy: previousKpi ? calculateYoy(avgTransaction, avgTransaction * (1 - (previousKpi.totalFeeCollection / kpi.totalFeeCollection))) : null
           },
         ].map(s => (
-          <Card key={s.label} className="bento-card flex items-center gap-5 relative overflow-hidden">
+          <Card key={s.label} className="bento-card">
             {/* Left accent bar */}
             <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ background: s.accent }} />
-            <div className={`p-3 rounded-xl shrink-0 ${s.iconBg} ${s.iconColor} ml-3`}>{s.icon}</div>
-            <div className="min-w-0">
-              <p className="text-[11px] uppercase font-semibold tracking-[0.08em] text-slate-400 mb-1">{s.label}</p>
-              <p className="text-[22px] font-semibold tracking-tight text-slate-900 leading-none mb-1">{s.value}</p>
-              <p className="text-[11px] text-slate-400">{s.sub}</p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] uppercase font-semibold tracking-[0.08em] text-slate-400 mb-1">{s.label}</p>
+                <p className="text-[22px] font-semibold tracking-tight text-slate-900 leading-none mb-1">{s.value}</p>
+                <p className="text-[11px] text-slate-400">{s.sub}</p>
+                {s.yoy !== null && s.yoy !== undefined && (
+                  <div className="flex items-center gap-1 text-[10px] mt-2">
+                    <span className={`font-medium flex items-center ${s.yoy >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {s.yoy >= 0 ? <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
+                      {Math.abs(s.yoy).toFixed(1)}% YoY
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className={`p-3 rounded-xl shrink-0 ${s.iconBg} ${s.iconColor}`}>{s.icon}</div>
             </div>
           </Card>
         ))}
@@ -297,12 +317,12 @@ export function DemographicsOperations() {
           </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dashboard.extendedAnalysis.delayTimeBuckets} margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
+              <BarChart data={dashboard.extendedAnalysis.delayTimeBuckets} margin={{ top: 20, right: 10, bottom: 10, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
                 <XAxis dataKey="label" tick={tickStyle} axisLine={false} tickLine={false} />
                 <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={WHITE_TIP} />
-                <Bar dataKey="count" name="Transactions" radius={[6, 6, 0, 0]} barSize={36}>
+                <Bar dataKey="count" name="Transactions" radius={[7, 7, 0, 0]} barSize={40} label={<CustomBarLabel name="Transactions" />}>
                   {dashboard.extendedAnalysis.delayTimeBuckets.map((_: any, i: number) => (
                     <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}

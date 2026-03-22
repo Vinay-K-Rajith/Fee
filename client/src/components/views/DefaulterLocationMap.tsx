@@ -11,6 +11,7 @@ interface LocationData {
   location: string;
   defaulterCount: number;
   defaulterRate: number;
+  totalBalance: number;
   coordinates?: { lat: number; lng: number };
 }
 
@@ -132,118 +133,143 @@ export function DefaulterLocationMap() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
         />
 
-        {/* Critical Zones (High Default Rate >15%) */}
-        {locationData
-          .filter((loc) => loc.defaulterRate > 15 && loc.coordinates?.lat && loc.coordinates?.lng)
-          .map((loc) => {
-            const coords: [number, number] = [loc.coordinates!.lat, loc.coordinates!.lng];
-            return (
-              <CircleMarker
-                key={`critical-${loc.location}`}
-                center={coords}
-                pathOptions={{
-                  fillColor: '#F59E0B',
-                  color: '#D97706',
-                  weight: 2,
-                  opacity: 0.8,
-                  fillOpacity: 0.6,
-                }}
-                radius={Math.min((loc.defaulterCount * 2) + 8, 35)}
-              >
-                <Popup>
-                  <div className="p-3 text-sm">
-                    <h4 className="font-bold text-base mb-2 text-[#D97706]">{loc.location}</h4>
-                    <div className="space-y-1">
-                      <p><strong>Default Rate:</strong> <span className="text-[#D97706] font-semibold">{loc.defaulterRate.toFixed(1)}%</span></p>
-                      <p><strong>Defaulters:</strong> {loc.defaulterCount}</p>
-                      <p className="text-xs text-gray-500 pt-1">🔴 CRITICAL HOTSPOT</p>
-                    </div>
-                  </div>
-                </Popup>
-              </CircleMarker>
-            );
-          })}
+        {/* Calculate max balance for scaling */}
+        {(() => {
+          const maxBalance = Math.max(...locationData.map(l => l.totalBalance), 1);
+          
+          return (
+            <>
+              {/* Critical Zones (High Default Rate >15%) */}
+              {locationData
+                .filter((loc) => loc.defaulterRate > 15 && loc.coordinates?.lat && loc.coordinates?.lng)
+                .map((loc) => {
+                  const coords: [number, number] = [loc.coordinates!.lat, loc.coordinates!.lng];
+                  const balanceRatio = (loc.totalBalance / maxBalance) * 100;
+                  const radius = Math.min((balanceRatio / 10) + 8, 35);
+                  
+                  return (
+                    <CircleMarker
+                      key={`critical-${loc.location}`}
+                      center={coords}
+                      pathOptions={{
+                        fillColor: '#F59E0B',
+                        color: '#D97706',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillOpacity: 0.6,
+                      }}
+                      radius={radius}
+                    >
+                      <Popup>
+                        <div className="p-3 text-sm">
+                          <h4 className="font-bold text-base mb-2 text-[#D97706]">{loc.location}</h4>
+                          <div className="space-y-1">
+                            <p><strong>Default Rate:</strong> <span className="text-[#D97706] font-semibold">{loc.defaulterRate.toFixed(1)}%</span></p>
+                            <p><strong>Outstanding Amount:</strong> ₹{(loc.totalBalance / 1000).toFixed(0)}k</p>
+                            <p><strong>Defaulter Count:</strong> {loc.defaulterCount}</p>
+                            <p className="text-xs text-gray-500 pt-1">🔴 CRITICAL HOTSPOT</p>
+                          </div>
+                        </div>
+                      </Popup>
+                    </CircleMarker>
+                  );
+                })}
 
-        {/* Medium Risk Zones (5-15%) */}
-        {locationData
-          .filter((loc) => loc.defaulterRate >= 5 && loc.defaulterRate <= 15 && loc.coordinates?.lat && loc.coordinates?.lng)
-          .map((loc) => {
-            const coords: [number, number] = [loc.coordinates!.lat, loc.coordinates!.lng];
-            return (
-              <CircleMarker
-                key={`medium-${loc.location}`}
-                center={coords}
-                pathOptions={{
-                  fillColor: '#3B82F6',
-                  color: '#1E40AF',
-                  weight: 2,
-                  opacity: 0.8,
-                  fillOpacity: 0.5,
-                }}
-                radius={Math.min((loc.defaulterCount * 2) + 6, 30)}
-              >
-                <Popup>
-                  <div className="p-3 text-sm">
-                    <h4 className="font-bold text-base mb-2 text-[#1E40AF]">{loc.location}</h4>
-                    <div className="space-y-1">
-                      <p><strong>Default Rate:</strong> <span className="text-[#1E40AF] font-semibold">{loc.defaulterRate.toFixed(1)}%</span></p>
-                      <p><strong>Defaulters:</strong> {loc.defaulterCount}</p>
-                      <p className="text-xs text-gray-500 pt-1">🟡 MEDIUM RISK</p>
-                    </div>
-                  </div>
-                </Popup>
-              </CircleMarker>
-            );
-          })}
+              {/* Medium Risk Zones (5-15%) */}
+              {locationData
+                .filter((loc) => loc.defaulterRate >= 5 && loc.defaulterRate <= 15 && loc.coordinates?.lat && loc.coordinates?.lng)
+                .map((loc) => {
+                  const coords: [number, number] = [loc.coordinates!.lat, loc.coordinates!.lng];
+                  const balanceRatio = (loc.totalBalance / maxBalance) * 100;
+                  const radius = Math.min((balanceRatio / 10) + 6, 30);
+                  
+                  return (
+                    <CircleMarker
+                      key={`medium-${loc.location}`}
+                      center={coords}
+                      pathOptions={{
+                        fillColor: '#3B82F6',
+                        color: '#1E40AF',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillOpacity: 0.5,
+                      }}
+                      radius={radius}
+                    >
+                      <Popup>
+                        <div className="p-3 text-sm">
+                          <h4 className="font-bold text-base mb-2 text-[#1E40AF]">{loc.location}</h4>
+                          <div className="space-y-1">
+                            <p><strong>Default Rate:</strong> <span className="text-[#1E40AF] font-semibold">{loc.defaulterRate.toFixed(1)}%</span></p>
+                            <p><strong>Outstanding Amount:</strong> ₹{(loc.totalBalance / 1000).toFixed(0)}k</p>
+                            <p><strong>Defaulter Count:</strong> {loc.defaulterCount}</p>
+                            <p className="text-xs text-gray-500 pt-1">🟡 MEDIUM RISK</p>
+                          </div>
+                        </div>
+                      </Popup>
+                    </CircleMarker>
+                  );
+                })}
 
-        {/* Low Risk Zones */}
-        {locationData
-          .filter((loc) => loc.defaulterRate < 5 && loc.coordinates?.lat && loc.coordinates?.lng)
-          .map((loc) => {
-            const coords: [number, number] = [loc.coordinates!.lat, loc.coordinates!.lng];
-            return (
-              <CircleMarker
-                key={`low-${loc.location}`}
-                center={coords}
-                pathOptions={{
-                  fillColor: '#10B981',
-                  color: '#047857',
-                  weight: 2,
-                  opacity: 0.8,
-                  fillOpacity: 0.4,
-                }}
-                radius={Math.min((loc.defaulterCount * 2) + 5, 25)}
-              >
-                <Popup>
-                  <div className="p-3 text-sm">
-                    <h4 className="font-bold text-base mb-2 text-[#047857]">{loc.location}</h4>
-                    <div className="space-y-1">
-                      <p><strong>Default Rate:</strong> <span className="text-[#047857] font-semibold">{loc.defaulterRate.toFixed(1)}%</span></p>
-                      <p><strong>Defaulters:</strong> {loc.defaulterCount}</p>
-                      <p className="text-xs text-gray-500 pt-1">🟢 LOW RISK</p>
-                    </div>
-                  </div>
-                </Popup>
-              </CircleMarker>
-            );
-          })}
+              {/* Low Risk Zones */}
+              {locationData
+                .filter((loc) => loc.defaulterRate < 5 && loc.coordinates?.lat && loc.coordinates?.lng)
+                .map((loc) => {
+                  const coords: [number, number] = [loc.coordinates!.lat, loc.coordinates!.lng];
+                  const balanceRatio = (loc.totalBalance / maxBalance) * 100;
+                  const radius = Math.min((balanceRatio / 10) + 5, 25);
+                  
+                  return (
+                    <CircleMarker
+                      key={`low-${loc.location}`}
+                      center={coords}
+                      pathOptions={{
+                        fillColor: '#10B981',
+                        color: '#047857',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillOpacity: 0.4,
+                      }}
+                      radius={radius}
+                    >
+                      <Popup>
+                        <div className="p-3 text-sm">
+                          <h4 className="font-bold text-base mb-2 text-[#047857]">{loc.location}</h4>
+                          <div className="space-y-1">
+                            <p><strong>Default Rate:</strong> <span className="text-[#047857] font-semibold">{loc.defaulterRate.toFixed(1)}%</span></p>
+                            <p><strong>Outstanding Amount:</strong> ₹{(loc.totalBalance / 1000).toFixed(0)}k</p>
+                            <p><strong>Defaulter Count:</strong> {loc.defaulterCount}</p>
+                            <p className="text-xs text-gray-500 pt-1">🟢 LOW RISK</p>
+                          </div>
+                        </div>
+                      </Popup>
+                    </CircleMarker>
+                  );
+                })}
+            </>
+          );
+        })()}
       </MapContainer>
 
       {/* Legend */}
       <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg z-10 text-xs">
-        <p className="font-bold mb-2 text-[#1E293B]">Risk Zones</p>
-        <div className="space-y-1">
+        <p className="font-bold mb-2 text-[#1E293B]">Risk Zones & Amount Visualization</p>
+        <div className="space-y-2">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-[#F59E0B]"></div>
-            <span>Critical (15%+)</span>
+            <span>Critical Rate (15%+)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-[#3B82F6]"></div>
-            <span>Medium (5-15%)</span>
+            <span>Medium Rate (5-15%)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-[#10B981]"></div>
-            <span>Low (below 5%)</span>
+            <span>Low Rate (&lt;5%)</span>
+          </div>
+          <div className="border-t border-slate-200 pt-2 mt-2">
+            <p className="font-semibold mb-1">💡 Circle Size = Outstanding Amount</p>
+            <p className="text-xs text-slate-600">Larger circles = higher financial risk</p>
           </div>
         </div>
       </div>

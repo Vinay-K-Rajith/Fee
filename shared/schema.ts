@@ -194,6 +194,14 @@ export interface DefaulterAnalysis {
   locationWise: LocationDefaulter[];
   salarySlabWise: SalarySlabDefaulter[];
   classWise: ClassDefaulter[];
+  currentYearTopDefaulters?: Array<{
+    admissionNo: string;
+    name: string;
+    className: string;
+    totalLateFeePaid: number;
+    timesLate: number;
+    totalPaid: number;
+  }>;
   riskAnalysis?: PaymentHabit[];
   goodBehaviors?: PaymentHabit[];
 }
