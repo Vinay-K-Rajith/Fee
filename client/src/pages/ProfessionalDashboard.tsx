@@ -20,6 +20,7 @@ import {
   Wallet,
   AlertCircle,
   TrendingUp,
+  TrendingDown,
   DollarSign,
   Users,
   Calendar,
@@ -80,7 +81,15 @@ export function ProfessionalDashboard() {
     );
   }
 
-  const { kpi, benchmarks, monthlyPerformance, yearlyPerformance, defaulterAnalysis, concessionAnalysis, paymentModeAnalysis } = dashboard;
+  const { kpi, benchmarks, monthlyPerformance, yearlyPerformance, defaulterAnalysis, concessionAnalysis, paymentModeAnalysis, previousKpi } = dashboard;
+
+  // Calculate YoY percentage change
+  const calculateYoy = (current: number, previous: number | undefined) => {
+    if (!previous) return null;
+    if (previous === 0) return current > 0 ? 100 : 0;
+    const diff = current - previous;
+    return (diff / previous) * 100;
+  };
 
   // ========================================
   // INSIGHT 15: OVERALL FEE COLLECTION PERFORMANCE (KPI Cards)
@@ -94,6 +103,7 @@ export function ProfessionalDashboard() {
       status: kpi.collectionRate >= benchmarks.collectionRateBenchmark ? 'good' : 'alert',
       icon: Wallet,
       insight: '15',
+      yoy: calculateYoy(kpi.totalFeeCollection, previousKpi?.totalFeeCollection)
     },
     {
       title: 'Active Defaulters',
@@ -103,6 +113,7 @@ export function ProfessionalDashboard() {
       status: kpi.defaulterRate <= benchmarks.defaulterRateBenchmark ? 'good' : 'alert',
       icon: AlertCircle,
       insight: '3',
+      yoy: calculateYoy(kpi.totalDefaulters, previousKpi?.totalDefaulters)
     },
     {
       title: 'Outstanding Balance',
@@ -112,6 +123,7 @@ export function ProfessionalDashboard() {
       status: 'neutral',
       icon: DollarSign,
       insight: '15',
+      yoy: calculateYoy(kpi.totalBalance, previousKpi?.totalBalance)
     },
     {
       title: 'Digital Adoption',
@@ -121,6 +133,7 @@ export function ProfessionalDashboard() {
       status: kpi.digitalAdoption >= benchmarks.digitalAdoptionTarget ? 'good' : 'alert',
       icon: TrendingUp,
       insight: '17',
+      yoy: calculateYoy(kpi.digitalAdoption, previousKpi?.digitalAdoption)
     },
   ];
 
@@ -175,6 +188,14 @@ export function ProfessionalDashboard() {
                     <p className="text-3xl font-bold text-[#0F172A] mb-1">{card.value}</p>
                     <p className="text-xs text-[#64748B] font-medium">{card.benchmark}</p>
                     <p className="text-xs text-[#94A3B8] font-medium mt-0.5">{card.target}</p>
+                    {card.yoy !== null && card.yoy !== undefined && (
+                      <div className="flex items-center gap-1 text-[10px] mt-2">
+                        <span className={`font-medium flex items-center ${card.yoy >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {card.yoy >= 0 ? <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
+                          {Math.abs(card.yoy).toFixed(1)}% YoY
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className={`p-3 rounded-lg ${bgColor} ml-3`}>
                     <Icon className={`w-6 h-6`} style={{ color: statusColor }} />

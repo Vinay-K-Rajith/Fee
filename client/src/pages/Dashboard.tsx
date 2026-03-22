@@ -56,6 +56,24 @@ export function Dashboard() {
   // Calculate defaulter rate percentage
   const defaulterRatePercent = (defaulterAnalysis.totalDefaulters / kpi.totalStudents) * 100;
 
+  // Get previous year data for trends
+  const actualYears = yearlyPerformance.filter((y: any) => !y.isForecast);
+  const previousYearData = actualYears.length >= 2 ? actualYears[actualYears.length - 2] : null;
+  const currentYearData = actualYears.length > 0 ? actualYears[actualYears.length - 1] : null;
+
+  // Calculate percentage changes
+  const collectionRateChange = previousYearData && currentYearData 
+    ? ((currentYearData.collectionRate - previousYearData.collectionRate) / previousYearData.collectionRate) * 100
+    : 0;
+
+  const defaultersChange = previousYearData && currentYearData 
+    ? ((currentYearData.totalDefaulters - previousYearData.totalDefaulters) / (previousYearData.totalDefaulters || 1)) * 100
+    : 0;
+
+  const balanceChange = previousYearData && currentYearData 
+    ? ((currentYearData.totalBalance - previousYearData.totalBalance) / (previousYearData.totalBalance || 1)) * 100
+    : 0;
+
   // Quick Stats Cards - All 22 Insights Summary
   const quickStats = [
     {
@@ -67,6 +85,8 @@ export function Dashboard() {
       color: "text-emerald-500",
       bgColor: "bg-emerald-50",
       trend: kpi.collectionRate >= benchmarks.collectionRateBenchmark ? "up" : "down",
+      percentChange: collectionRateChange,
+      compareLabel: `vs previous year`,
     },
     {
       id: "defaulters",
@@ -77,6 +97,8 @@ export function Dashboard() {
       color: "text-red-500",
       bgColor: "bg-red-50",
       trend: defaulterRatePercent < benchmarks.defaulterRateBenchmark ? "down" : "up",
+      percentChange: defaultersChange,
+      compareLabel: `vs previous year`,
     },
     {
       id: "habitual",
@@ -87,6 +109,8 @@ export function Dashboard() {
       color: "text-orange-500",
       bgColor: "bg-orange-50",
       trend: "alert",
+      percentChange: 0,
+      compareLabel: `monitoring`,
     },
     {
       id: "tcloss",
@@ -97,6 +121,8 @@ export function Dashboard() {
       color: "text-red-600",
       bgColor: "bg-red-50",
       trend: "down",
+      percentChange: balanceChange,
+      compareLabel: `vs previous year`,
     },
     {
       id: "concession",
@@ -160,8 +186,11 @@ export function Dashboard() {
       <div>
         <h2 className="text-lg font-black text-[#1E293B] mb-6 font-roboto">Key Performance Indicators</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickStats.map((stat) => {
+          {quickStats.map((stat: any) => {
             const Icon = stat.icon;
+            const changeColor = stat.percentChange >= 0 ? (stat.trend === 'down' ? 'text-green-600' : 'text-red-600') : (stat.trend === 'down' ? 'text-red-600' : 'text-green-600');
+            const changeIcon = stat.percentChange >= 0 ? '↑' : '↓';
+            
             return (
               <Card key={stat.id} className="bento-card border-none overflow-hidden hover:shadow-lg transition-all" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
                 <div className="p-5">
@@ -169,12 +198,19 @@ export function Dashboard() {
                     <div className={`p-2 ${stat.bgColor} rounded-lg`}>
                       <Icon className={`h-5 w-5 ${stat.color}`} />
                     </div>
-                    {stat.trend === 'up' && <TrendingUp className="h-4 w-4 text-green-500" />}
-                    {stat.trend === 'down' && <TrendingDown className="h-4 w-4 text-red-500" />}
+                    <>
+                      {stat.trend === 'up' && stat.percentChange !== 0 && <div className={`text-xs font-bold ${changeColor}`}>{changeIcon} {Math.abs(stat.percentChange).toFixed(1)}%</div>}
+                      {stat.trend === 'down' && stat.percentChange !== 0 && <div className={`text-xs font-bold ${changeColor}`}>{changeIcon} {Math.abs(stat.percentChange).toFixed(1)}%</div>}
+                      {stat.trend === 'up' && <TrendingUp className="h-4 w-4 text-green-500" />}
+                      {stat.trend === 'down' && <TrendingDown className="h-4 w-4 text-red-500" />}
+                    </>
                   </div>
                   <p className="text-xs font-bold text-slate-500 font-open-sans uppercase tracking-wide">{stat.title}</p>
                   <p className={`text-2xl font-black mt-1 font-roboto ${stat.color}`}>{stat.value}</p>
-                  <p className="text-xs font-bold text-slate-400 mt-2 font-open-sans">{stat.benchmark}</p>
+                  <div className="flex justify-between items-end mt-2">
+                    <p className="text-xs font-bold text-slate-400 font-open-sans">{stat.benchmark}</p>
+                    {stat.percentChange !== 0 && <p className={`text-xs font-bold ${changeColor}`}>{stat.compareLabel}</p>}
+                  </div>
                 </div>
               </Card>
             );

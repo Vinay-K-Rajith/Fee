@@ -19,6 +19,7 @@ import {
 import { TrendingDown, AlertCircle, Gift, FileX, Users } from "lucide-react";
 import { useDashboard, formatCurrency, formatPercentage } from "@/hooks/use-api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SmartTooltip, CustomBarLabel, CustomBarLabelVertical } from "@/components/charts/chartUtils";
 
 export function LeakageConcessions() {
   const { data: dashboard, isLoading, error } = useDashboard();
@@ -155,7 +156,7 @@ export function LeakageConcessions() {
         <h3 className="text-lg font-black text-[#1E293B] mb-8 font-roboto">Revenue Waterfall Analysis</h3>
         <div className="h-[350px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={waterfallData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+            <BarChart data={waterfallData} margin={{ top: 20, right: 40, left: 0, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#1E293B', fontSize: 11, fontWeight: 900}} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 11, fontWeight: 800}} tickFormatter={(v) => `₹${Math.abs(v)}L`} />
@@ -164,7 +165,7 @@ export function LeakageConcessions() {
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
                 formatter={(value: number) => [`₹${Math.abs(value)}L`, value < 0 ? 'Loss' : 'Revenue']}
               />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={50}>
+              <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={56} label={<CustomBarLabel name="Revenue" />}>
                 {waterfallData.map((entry, index) => (
                   <Cell key={`${entry.name}-${entry.value}`} fill={entry.fill} />
                 ))}
@@ -289,7 +290,7 @@ export function LeakageConcessions() {
               <BarChart data={tcByClass} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
                 <XAxis type="number" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 11, fontWeight: 800}} tickFormatter={(v) => `₹${v}L`} />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#1E293B', fontSize: 11, fontWeight: 900}} width={60} />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#1E293B', fontSize: 11, fontWeight: 900}} width={70} />
                 <Tooltip 
                   cursor={{fill: '#F8FAFC'}}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
@@ -298,7 +299,7 @@ export function LeakageConcessions() {
                     'Revenue Loss'
                   ]}
                 />
-                <Bar dataKey="loss" radius={[0, 4, 4, 0]} barSize={20}>
+                <Bar dataKey="loss" radius={[0, 6, 6, 0]} barSize={24} label={<CustomBarLabelVertical name="Loss" />}>
                   {tcByClass.map((entry) => (
                     <Cell key={entry.name} fill={entry.color} />
                   ))}

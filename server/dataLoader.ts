@@ -8,6 +8,28 @@ import * as path from 'node:path';
 // Data Types
 // ========================================
 
+const parseExcelOrDateStr = (val: any): number => {
+  if (!val || String(val).trim() === 'NA') return 0;
+  if (typeof val === 'number') {
+    return new Date(Math.round((val - 25569) * 86400 * 1000)).setHours(0,0,0,0);
+  }
+  if (typeof val === 'string') {
+    const cleanDate = val.replace(/(st|nd|rd|th)/ig, '');
+    const d = new Date(cleanDate);
+    if (!isNaN(d.getTime())) return d.setHours(0,0,0,0);
+  }
+  return 0;
+};
+
+const isLatePayment = (receiptDate: any, dueDateStr: any): boolean => {
+  const rTime = parseExcelOrDateStr(receiptDate);
+  const dTime = parseExcelOrDateStr(dueDateStr);
+  if (rTime > 0 && dTime > 0) {
+    return rTime > dTime;
+  }
+  return false;
+};
+
 export interface StudentSummaryRecord {
   srNo: string;
   admissionNo: string;
@@ -18,6 +40,7 @@ export interface StudentSummaryRecord {
   conAmount: number;
   paidAmount: number;
   balanceAmount: number;
+  hasDefaulterHistory?: boolean;
 }
 
 export interface CollectionRecord {
@@ -223,6 +246,7 @@ class DataLoader {
             conAmount: record.totalConcession || 0,
             paidAmount: record.totalPaid || 0,
             balanceAmount: record.defaulterTotal || 0,
+            hasDefaulterHistory: isLatePayment(record.receiptDate, record.dueDate),
           });
         } else {
           // Aggregate data for the same student
@@ -230,6 +254,7 @@ class DataLoader {
           existing.conAmount += record.totalConcession || 0;
           existing.paidAmount += record.totalPaid || 0;
           existing.balanceAmount += record.defaulterTotal || 0;
+          existing.hasDefaulterHistory = existing.hasDefaulterHistory || isLatePayment(record.receiptDate, record.dueDate);
         }
       });
       
@@ -295,12 +320,14 @@ class DataLoader {
           conAmount: record.totalConcession || 0,
           paidAmount: record.totalPaid || 0,
           balanceAmount: record.defaulterTotal || 0,
+            hasDefaulterHistory: isLatePayment(record.receiptDate, record.dueDate),
         });
       } else {
         existing.dueAmount += record.totalStructuredAmount || 0;
         existing.conAmount += record.totalConcession || 0;
         existing.paidAmount += record.totalPaid || 0;
         existing.balanceAmount += record.defaulterTotal || 0;
+          existing.hasDefaulterHistory = existing.hasDefaulterHistory || isLatePayment(record.receiptDate, record.dueDate);
       }
     });
     
@@ -321,7 +348,9 @@ class DataLoader {
     const totalPaid = students.reduce((sum, s) => sum + s.paidAmount, 0);
     const totalBalance = students.reduce((sum, s) => sum + s.balanceAmount, 0);
 
-    const defaulters = students.filter(s => s.balanceAmount > 0);
+    const defaulters = students.filter(s => s.balanceAmount > 0 || s.hasDefaulterHistory);
+    const activeDefaultersCount = students.filter(s => s.balanceAmount > 0).length;
+    const totalDefaultedPayments = allCollections.filter(c => isLatePayment(c.receiptDate, c.dueDate)).length;
 
     // Calculate digital adoption rate from payment modes
     const paymentModes = allCollections.reduce((acc, record) => {
@@ -346,7 +375,9 @@ class DataLoader {
       collectionRate: collectionRate,
       totalBalance: totalBalance,
       totalDefaulters: defaulters.length,
-      defaulterRate: totalStudents > 0 ? (defaulters.length / totalStudents) * 100 : 0,
+      activeDefaultersCount: activeDefaultersCount,
+      totalDefaultedPayments: totalDefaultedPayments,
+      defaulterRate: totalStudents > 0 ? (activeDefaultersCount / totalStudents) * 100 : 0,
       totalStudents: totalStudents,
       activeStudents: totalStudents,
       digitalAdoption: digitalAdoption,
@@ -472,6 +503,7 @@ class DataLoader {
       totalCollected: number;   // grouped by actual receipt date ← KEY FIX
       totalConcession: number;  // grouped by installment schedule
       defaulterCount: number;
+      latePaymentCount: number; // COUNT OF ACTUAL LATE PAYMENT TRANSACTIONS
       concessionGiven: number;
       records: number;
     }>();
@@ -484,6 +516,7 @@ class DataLoader {
         totalCollected: 0,
         totalConcession: 0,
         defaulterCount: 0,
+        latePaymentCount: 0,
         concessionGiven: 0,
         records: 0,
       });
@@ -513,9 +546,17 @@ class DataLoader {
         const receiptMonth = parseReceiptMonth(record.receiptDate);
         if (receiptMonth && monthlyData.has(receiptMonth)) {
           monthlyData.get(receiptMonth)!.totalCollected += record.totalPaid;
+          
+          // COUNT ACTUAL LATE PAYMENT TRANSACTIONS
+          if (isLatePayment(record.receiptDate, record.dueDate)) {
+            monthlyData.get(receiptMonth)!.latePaymentCount += 1;
+          }
         } else if (scheduleMonth && monthlyData.has(scheduleMonth)) {
           // Fallback: if receipt date unparseable, fall back to schedule month
           monthlyData.get(scheduleMonth)!.totalCollected += record.totalPaid;
+          if (isLatePayment(record.receiptDate, record.dueDate)) {
+            monthlyData.get(scheduleMonth)!.latePaymentCount += 1;
+          }
         }
       }
     });
@@ -535,7 +576,7 @@ class DataLoader {
         collectionRate,
         cumulativeCollection,
         defaulterCount: data.defaulterCount,
-        newDefaulters: Math.max(0, data.defaulterCount - (idx > 0 ? 10 : 0)),
+        latePaymentCount: data.latePaymentCount,
         tcDropouts: 0,
         concessionGiven: data.concessionGiven,
       };
@@ -550,10 +591,13 @@ class DataLoader {
     const students = this.getFilteredStudentSummary(yearFilter);
     const allCollections = this.getFilteredCollections(yearFilter);
     
-    const defaulters = students.filter(s => s.balanceAmount > 0);
-    const defaulterAdmissions = new Set(defaulters.map(d => String(d.admissionNo)));
+    const defaulters = students.filter(s => s.balanceAmount > 0 || s.hasDefaulterHistory);
+    const activeDefaulters = students.filter(s => s.balanceAmount > 0);
+    const totalDefaultedPayments = allCollections.filter(c => isLatePayment(c.receiptDate, c.dueDate)).length;
+    
+    // Use pure active defaulters for current analysis rates to avoid 100% false-positives
+    const activeDefaulterAdmissions = new Set(activeDefaulters.map(d => String(d.admissionNo)));
 
-    // Occupation-wise analysis
     const occupationMap = new Map<string, {
       total: number;
       defaulters: number;
@@ -580,7 +624,7 @@ class DataLoader {
         studentSet.add(admNo);
         data.total++;
         
-        if (defaulterAdmissions.has(admNo)) {
+        if (activeDefaulterAdmissions.has(admNo)) {
           const student = students.find(s => String(s.admissionNo) === admNo);
           if (student) {
             data.balance += student.balanceAmount;
@@ -629,7 +673,7 @@ class DataLoader {
         studentSet.add(admNo);
         data.total++;
         
-        if (defaulterAdmissions.has(admNo)) {
+        if (activeDefaulterAdmissions.has(admNo)) {
           const student = students.find(s => String(s.admissionNo) === admNo);
           if (student) {
             data.defaulters++;
@@ -710,10 +754,50 @@ class DataLoader {
           data.timesLate += 1;
         }
         data.totalPaid += record.totalPaid || 0;
-        data.totalDefaulterBalance += (record.defaulterTotal || 0); // Not accumulating as it's stateful, but for heuristic it works. Let's instead use it as max observed if we want, or just sum it to rank. We'll use sum for ranking.
+        data.totalDefaulterBalance += (record.defaulterTotal || 0);
       });
 
       const allHabits = Array.from(habitMap.values());
+      
+      // CURRENT YEAR TOP DEFAULTERS (for this FY only)
+      const currentYearHabitMap = new Map<string, {
+        admissionNo: string;
+        name: string;
+        className: string;
+        totalLateFeePaid: number;
+        timesLate: number;
+        totalPaid: number;
+      }>();
+      
+      allCollections.forEach(record => {
+        const admNo = String(record.admNo);
+        if (!currentYearHabitMap.has(admNo)) {
+          currentYearHabitMap.set(admNo, {
+            admissionNo: admNo,
+            name: record.studentName || 'Unknown',
+            className: record.classSection || 'Unknown',
+            totalLateFeePaid: 0,
+            timesLate: 0,
+            totalPaid: 0,
+          });
+        }
+        const data = currentYearHabitMap.get(admNo)!;
+        if (record.lateFee > 0) {
+          data.totalLateFeePaid += record.lateFee;
+          data.timesLate += 1;
+        }
+        data.totalPaid += record.totalPaid || 0;
+      });
+
+      const currentYearTopDefaulters = Array.from(currentYearHabitMap.values())
+        .filter(h => h.timesLate > 0)
+        .sort((a, b) => {
+          if (b.timesLate !== a.timesLate) {
+            return b.timesLate - a.timesLate;
+          }
+          return b.totalLateFeePaid - a.totalLateFeePaid;
+        })
+        .slice(0, 7);
       
       // Risk Analysis (Worst payers over 3 years) - heavily late or high balance
       const riskAnalysis = [...allHabits]
@@ -734,17 +818,20 @@ class DataLoader {
 
       return {
         totalDefaulters: defaulters.length,
-        totalBalance: defaulters.reduce((sum, d) => sum + d.balanceAmount, 0),
+        activeDefaultersCount: activeDefaulters.length,
+        totalDefaultedPayments: totalDefaultedPayments,
+        totalBalance: activeDefaulters.reduce((sum, d) => sum + d.balanceAmount, 0),
         occupationWise,
         locationWise,
         classWise,
-        defaulterList: defaulters.slice(0, 100).map(d => ({
+        defaulterList: activeDefaulters.slice(0, 100).map(d => ({
           admissionNo: d.admissionNo,
           name: d.name,
           className: d.className,
           fatherName: d.fatherName,
           balance: d.balanceAmount,
         })),
+        currentYearTopDefaulters,
         riskAnalysis,
         goodBehaviors,
       };

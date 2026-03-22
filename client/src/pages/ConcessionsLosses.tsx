@@ -8,10 +8,10 @@ import {
 import { useDashboard, formatCurrency, formatPercentage } from '@/hooks/use-api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Coins, Percent, FileText } from 'lucide-react';
+import { Calendar, Coins, Percent, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BRAND_INDIGO, BRAND_GREEN, STATUS, CHART_COLORS, GRID_COLOR, tickStyle } from '@/theme';
-import { SmartTooltip } from '@/components/charts/chartUtils';
+import { SmartTooltip, CustomBarLabel } from '@/components/charts/chartUtils';
 
 
 export function ConcessionsLosses() {
@@ -35,7 +35,14 @@ export function ConcessionsLosses() {
     );
   }
 
-  const { yearlyPerformance, monthlyPerformance, concessionAnalysis, benchmarks } = dashboard;
+  const { yearlyPerformance, monthlyPerformance, concessionAnalysis, benchmarks, kpi, previousKpi } = dashboard;
+
+  const calculateYoy = (current: number, previous: number | undefined) => {
+    if (!previous) return null;
+    if (previous === 0) return current > 0 ? 100 : 0;
+    const diff = current - previous;
+    return (diff / previous) * 100;
+  };
 
   // Split actual vs forecast for YoY concession chart
   let lastActualIdx = -1;
@@ -72,16 +79,47 @@ export function ConcessionsLosses() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Total Concessions', value: formatCurrency(concessionAnalysis.totalConcession, true), icon: <Coins className="w-5 h-5" />, bg: 'bg-orange-50', iconColor: 'text-orange-500' },
-          { label: 'Concession Rate', value: formatPercentage(concessionAnalysis.concessionRate), icon: <Percent className="w-5 h-5" />, bg: 'bg-blue-50', iconColor: 'text-blue-500' },
-          { label: 'Avg / Student', value: concessionAnalysis.studentsWithConcession > 0 ? formatCurrency(concessionAnalysis.avgConcessionPerStudent) : '₹0', icon: <FileText className="w-5 h-5" />, bg: 'bg-emerald-50', iconColor: 'text-emerald-500' },
+          { 
+            label: 'Total Concessions', 
+            value: formatCurrency(concessionAnalysis.totalConcession, true), 
+            icon: <Coins className="w-5 h-5" />, 
+            bg: 'bg-orange-50', 
+            iconColor: 'text-orange-500',
+            yoy: calculateYoy(concessionAnalysis.totalConcession, previousKpi?.totalConcession)
+          },
+          { 
+            label: 'Concession Rate', 
+            value: formatPercentage(concessionAnalysis.concessionRate), 
+            icon: <Percent className="w-5 h-5" />, 
+            bg: 'bg-blue-50', 
+            iconColor: 'text-blue-500',
+            yoy: calculateYoy(concessionAnalysis.concessionRate, previousKpi?.concessionRate)
+          },
+          { 
+            label: 'Avg / Student', 
+            value: concessionAnalysis.studentsWithConcession > 0 ? formatCurrency(concessionAnalysis.avgConcessionPerStudent) : '₹0', 
+            icon: <FileText className="w-5 h-5" />, 
+            bg: 'bg-emerald-50', 
+            iconColor: 'text-emerald-500',
+            yoy: previousKpi && previousKpi.totalConcession ? calculateYoy(concessionAnalysis.avgConcessionPerStudent, (previousKpi.totalConcession / previousKpi.totalStudents)) : null
+          },
         ].map(s => (
-          <Card key={s.label} className="bento-card flex items-center justify-between">
-            <div>
-              <p className="text-[#64748B] text-[11px] uppercase font-semibold tracking-[0.1em] mb-2">{s.label}</p>
-              <p className="text-2xl font-semibold tracking-tight text-slate-900">{s.value}</p>
+          <Card key={s.label} className="bento-card">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-[#64748B] text-[11px] uppercase font-semibold tracking-[0.1em] mb-2">{s.label}</p>
+                <p className="text-2xl font-semibold tracking-tight text-slate-900 mb-1">{s.value}</p>
+                {s.yoy !== null && s.yoy !== undefined && (
+                  <div className="flex items-center gap-1.5 text-xs mt-2">
+                    <span className={`font-medium flex items-center ${s.yoy >= 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {s.yoy >= 0 ? <TrendingDown className="w-3 h-3 mr-1" /> : <TrendingUp className="w-3 h-3 mr-1" />}
+                      {Math.abs(s.yoy).toFixed(1)}% YoY
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className={`p-3 rounded-xl shrink-0 ${s.bg} ${s.iconColor}`}>{s.icon}</div>
             </div>
-            <div className={`p-3 rounded-xl ${s.bg} ${s.iconColor}`}>{s.icon}</div>
           </Card>
         ))}
       </div>
@@ -130,12 +168,12 @@ export function ConcessionsLosses() {
           </div>
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyPerformance} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
+              <BarChart data={monthlyPerformance} margin={{ top: 20, right: 10, bottom: 20, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
                 <XAxis dataKey="month" tick={tickStyle} axisLine={false} tickLine={false} angle={-30} textAnchor="end" height={50} />
                 <YAxis tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} />
                 <Tooltip content={<SmartTooltip />} />
-                <Bar dataKey="concessionGiven" name="Concessions Given" fill={STATUS.warning} radius={[4, 4, 0, 0]} barSize={22} />
+                <Bar dataKey="concessionGiven" name="Concessions Given" fill={STATUS.warning} radius={[6, 6, 0, 0]} barSize={24} label={<CustomBarLabel name="Concessions Given" />} />
               </BarChart>
             </ResponsiveContainer>
           </div>

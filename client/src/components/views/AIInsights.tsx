@@ -1,10 +1,30 @@
 ﻿import { useState, useRef, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Sparkles, Send, Loader2, User, Bot, Trash2 } from 'lucide-react';
+import { Sparkles, Send, Loader2, User, Bot, Trash2, Download, Mail } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import { 
+  LineChart, 
+  Line, 
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  ResponsiveContainer,
+  Legend
+} from 'recharts';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const STORAGE_KEY = 'fee-insights-chat-history';
 
@@ -14,6 +34,7 @@ interface ChatMessage {
   content: string;
   insights?: string[];
   recommendations?: string[];
+  chartData?: any;
 }
 
 const WELCOME_MESSAGE: ChatMessage = {
@@ -118,6 +139,14 @@ const markdownComponents = {
 export function AIInsights() {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>(loadChatHistory);
+  
+  // Email Modal State
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
+  const [emailSubject, setEmailSubject] = useState('Fee Insights Data Report');
+  const [selectedContent, setSelectedContent] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailSuccess, setEmailSuccess] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -137,48 +166,201 @@ export function AIInsights() {
     setMessages([WELCOME_MESSAGE]);
   }, []);
 
-  const renderDetailsPanel = (insights?: string[], recommendations?: string[]) => {
-    if (!insights?.length && !recommendations?.length) return null;
-
-    return (
-      <div className="mt-4 space-y-3">
-        {insights && insights.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="font-semibold text-blue-900 text-sm mb-2">Key Insights</div>
-            <ul className="space-y-1">
-              {insights.map((insight, i) => (
-                <li key={i} className="text-sm text-blue-800 flex gap-2">
-                  <span className="text-blue-600 mt-1 flex-shrink-0">→</span>
-                  <span>{insight}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {recommendations && recommendations.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <div className="font-semibold text-amber-900 text-sm mb-2">Recommendations</div>
-            <ul className="space-y-1">
-              {recommendations.map((rec, i) => (
-                <li key={i} className="text-sm text-amber-800 flex gap-2">
-                  <span className="text-amber-600 mt-1 flex-shrink-0">→</span>
-                  <span>{rec}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-    );
+  const handleSendEmail = async () => {
+    if (!emailTo) return;
+    setIsSendingEmail(true);
+    try {
+      const res = await fetch('/api/ai/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toAddress: emailTo, subject: emailSubject, content: selectedContent }),
+      });
+      if (res.ok) {
+        setEmailSuccess(true);
+        setTimeout(() => {
+          setEmailModalOpen(false);
+          setEmailSuccess(false);
+        }, 2000);
+      }
+    } catch {
+      // Error handling can happen here
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
+
+  const renderChart = (chartData: any) => {
+    if (!chartData || !chartData.labels || !chartData.datasets) return null;
+
+    // 12+ vibrant color palette for enhanced visualization
+    const colors = [
+      '#3B82F6', // Blue
+      '#10B981', // Green
+      '#F59E0B', // Amber
+      '#EF4444', // Red
+      '#8B5CF6', // Purple
+      '#EC4899', // Pink
+      '#06B6D4', // Cyan
+      '#14B8A6', // Teal
+      '#F97316', // Orange
+      '#6366F1', // Indigo
+      '#84CC16', // Lime
+      '#0891B2', // Cyan-dark
+    ];
+
+    // Helper function to format large numbers concisely
+    const formatValueForDisplay = (value: number): string => {
+      if (value >= 10000000) return (value / 10000000).toFixed(1) + 'Cr';
+      if (value >= 100000) return (value / 100000).toFixed(1) + 'L';
+      if (value >= 1000) return (value / 1000).toFixed(1) + 'k';
+      return value.toString();
+    };
+
+    // Custom tooltip with concise value formatting
+    const CustomChartTooltip = (props: any) => {
+      const { active, payload } = props;
+      if (active && payload && payload.length) {
+        return (
+          <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+            <p className="text-sm font-semibold text-gray-800 mb-2">{payload[0].payload.name}</p>
+            {payload.map((entry: any, idx: number) => (
+              <p key={idx} style={{ color: entry.color }} className="text-sm">
+                {entry.name}: <span className="font-semibold">{formatValueForDisplay(entry.value)}</span>
+              </p>
+            ))}
+          </div>
+        );
+      }
+      return null;
+    };
+
+    if (chartData.chartType === 'pie') {
+      const pieData = chartData.labels.map((lbl: string, idx: number) => ({
+        name: lbl,
+        value: chartData.datasets[0]?.data[idx] || 0
+      }));
+      return (
+        <div className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden" style={{ minHeight: '580px' }}>
+          <div className="flex-1 p-4 flex flex-col" style={{ minHeight: '540px' }}>
+            <ResponsiveContainer width="100%" height={480}>
+              <PieChart margin={{ top: 20, right: 30, left: 30, bottom: 80 }}>
+                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={140} label={({ name, value }) => `${name}: ${formatValueForDisplay(value)}`}>
+                   {pieData.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                   ))}
+                </Pie>
+                <RechartsTooltip content={<CustomChartTooltip />} />
+                <Legend verticalAlign="bottom" height={60} wrapperStyle={{ paddingTop: '12px', fontSize: '11px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      );
+    }
+
+    // Convert to recharts format for Bar/Line: { name: 'Q1', series1: 10, series2: 20 }
+    const rechartsData = chartData.labels.map((label: string, index: number) => {
+      const dataPoint: any = { name: label };
+      chartData.datasets.forEach((ds: any) => {
+        dataPoint[ds.label] = ds.data[index];
+      });
+      return dataPoint;
+    });
+
+      return (
+        <div className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden" style={{ minHeight: '580px' }}>
+          <div className="flex-1 p-4 flex flex-col" style={{ minHeight: '540px' }}>
+            <ResponsiveContainer width="100%" height={480}>
+              {chartData.chartType === 'bar' ? (
+                <BarChart data={rechartsData} margin={{ top: 20, right: 30, left: 50, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" fontSize={11} tickMargin={10} />
+                  <YAxis fontSize={11} width={60} tickFormatter={formatValueForDisplay} />
+                  <RechartsTooltip 
+                    cursor={{ fill: '#f1f5f9' }} 
+                    content={<CustomChartTooltip />}
+                  />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '12px' }} />
+                  {chartData.datasets.map((ds: any, idx: number) => (
+                    <Bar 
+                      key={ds.label} 
+                      dataKey={ds.label} 
+                      fill={colors[idx % colors.length]} 
+                      radius={[6, 6, 0, 0]}
+                      animationDuration={800}
+                    />
+                  ))}
+                </BarChart>
+              ) : (
+                <LineChart data={rechartsData} margin={{ top: 20, right: 30, left: 50, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" fontSize={11} tickMargin={10} />
+                  <YAxis fontSize={11} width={60} tickFormatter={formatValueForDisplay} />
+                  <RechartsTooltip 
+                    content={<CustomChartTooltip />}
+                  />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '12px' }} />
+                  {chartData.datasets.map((ds: any, idx: number) => (
+                    <Line 
+                      key={ds.label} 
+                      type="monotone" 
+                      dataKey={ds.label} 
+                      stroke={colors[idx % colors.length]} 
+                      strokeWidth={3}
+                      activeDot={{ r: 7 }} 
+                      dot={{ fill: colors[idx % colors.length], strokeWidth: 2, r: 5 }}
+                      animationDuration={800}
+                    />
+                  ))}
+                </LineChart>
+              )}
+            </ResponsiveContainer>
+          </div>
+        </div>
+      );
+  };
+
+  const handleDownloadPDF = async (msgId: string, elementId: string) => {
+    const el = document.getElementById(elementId);
+    if (!el) {
+      console.error("PDF element not found");
+      return;
+    }
+    try {
+      // Adding standard backgroundColor and a small delay ensures complex Recharts are rendered fully before canvas capture
+      setTimeout(async () => {
+        const canvas = await html2canvas(el, { 
+          scale: 2, 
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`AI-Report-${msgId}.pdf`);
+      }, 500);
+    } catch (err) {
+      console.error("PDF generation failed", err);
+    }
+  };
+
+
 
   const chatMutation = useMutation({
     mutationFn: async (userQuery: string) => {
+      // Create a simplified history array excluding loading messages to avoid confusing the AI
+      const historyContext = messages
+        .filter(m => m.id !== 'loading')
+        .map(m => ({ role: m.role, content: m.content }));
+
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: userQuery }),
+        body: JSON.stringify({ query: userQuery, history: historyContext }),
       });
       if (!res.ok) throw new Error('Failed to get AI response');
       return res.json();
@@ -187,9 +369,10 @@ export function AIInsights() {
       setMessages(prev => [...prev.filter(m => m.id !== 'loading'), {
         id: Date.now().toString(),
         role: 'assistant',
-        content: data.response,
+        content: data.response || data.text,
         insights: data.insights,
-        recommendations: data.recommendations
+        recommendations: data.recommendations,
+        chartData: data.chartData
       }]);
     },
     onError: () => {
@@ -246,21 +429,58 @@ export function AIInsights() {
               </div>
             )}
 
-            <div className={`max-w-[85%] rounded-2xl px-5 py-3.5 ${msg.role === 'user' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-700 shadow-sm'}`}>
+            <div className={`${msg.chartData ? 'w-full max-w-full p-5' : 'max-w-[85%] rounded-2xl px-5 py-3.5'} rounded-2xl ${msg.role === 'user' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-700 shadow-sm'}`}>
               {msg.id === 'loading' ? (
                 <div className="flex items-center gap-2 text-slate-500">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span className="text-sm">Analyzing 3 years data...</span>
                 </div>
               ) : msg.role === 'assistant' ? (
-                <>
-                  <div className="markdown-body">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                      {msg.content}
-                    </ReactMarkdown>
+                <div id={`report-content-${msg.id}`}>
+                  <div className="flex justify-end mb-4 gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setSelectedContent(msg.content);
+                        setEmailModalOpen(true);
+                      }}
+                      className="text-xs text-slate-400 hover:text-indigo-600 h-6 px-2 pr-3 flex items-center gap-1 bg-slate-50 rounded-md"
+                    >
+                      <Mail className="w-3 h-3" /> Email
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleDownloadPDF(msg.id, `report-content-${msg.id}`)}
+                      className="text-xs text-slate-400 hover:text-indigo-600 h-6 px-2 pr-3 flex items-center gap-1 bg-slate-50 rounded-md"
+                    >
+                      <Download className="w-3 h-3" /> PDF
+                    </Button>
                   </div>
-                  {renderDetailsPanel(msg.insights, msg.recommendations)}
-                </>
+                  {msg.chartData ? (
+                    <div className="grid grid-cols-12 gap-4">
+                      <div className="col-span-5 pr-4 max-h-[580px] overflow-y-auto">
+                        <div className="markdown-body text-sm">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                      <div className="col-span-7">
+                        {renderChart(msg.chartData)}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="px-5 py-3.5">
+                      <div className="markdown-body">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                          {msg.content}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
               )}
@@ -297,6 +517,52 @@ export function AIInsights() {
           AI Insights has context from 2023 to 2026. Hallucinations may occur.
         </div>
       </div>
+
+      <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Email AI Report</DialogTitle>
+            <DialogDescription>
+              Send this formatted analysis and insights directly to your team.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email" className="text-sm font-medium">To Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="admin@school.edu"
+                value={emailTo}
+                onChange={(e) => setEmailTo(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="subject" className="text-sm font-medium">Subject Line</Label>
+              <Input
+                id="subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="contentPreview" className="text-sm font-medium">Content Preview (Markdown)</Label>
+              <Textarea 
+                id="contentPreview" 
+                value={selectedContent} 
+                className="h-24 text-xs font-mono text-slate-500 bg-slate-50 resize-none opacity-80"
+                readOnly
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSendEmail} disabled={isSendingEmail || !emailTo} className={emailSuccess ? "bg-green-600 hover:bg-green-700" : ""}>
+              {isSendingEmail ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</> : emailSuccess ? 'Sent!' : 'Send Email'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

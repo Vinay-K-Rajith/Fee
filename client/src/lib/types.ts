@@ -11,6 +11,8 @@ export interface KPISummary {
   collectionRate: number;
   totalBalance: number;
   totalDefaulters: number;
+  activeDefaultersCount: number;
+  totalDefaultedPayments: number;
   defaulterRate: number;
   totalStudents: number;
   activeStudents: number;
@@ -88,11 +90,21 @@ export interface DefaulterListItem {
 
 export interface DefaulterAnalysis {
   totalDefaulters: number;
+  activeDefaultersCount: number;
+  totalDefaultedPayments: number;
   totalBalance: number;
   occupationWise: OccupationDefaulter[];
   locationWise: LocationDefaulter[];
   classWise: ClassDefaulter[];
   defaulterList: DefaulterListItem[];
+  currentYearTopDefaulters?: Array<{
+    admissionNo: string;
+    name: string;
+    className: string;
+    totalLateFeePaid: number;
+    timesLate: number;
+    totalPaid: number;
+  }>;
   riskAnalysis?: PaymentHabit[];
   goodBehaviors?: PaymentHabit[];
 }
@@ -167,6 +179,8 @@ export interface ExtendedAnalysis {
 // Full Dashboard Data
 export interface DashboardData {
   kpi: KPISummary;
+  previousKpi?: KPISummary | null;
+  previousMonthlyPerformance?: MonthlyPerformance[] | null;
   benchmarks: BenchmarkData;
   monthlyPerformance: MonthlyPerformance[];
   yearlyPerformance: YearlyPerformance[];
