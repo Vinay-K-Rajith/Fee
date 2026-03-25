@@ -60,6 +60,7 @@ export function DashboardHome() {
       tooltipTitle: 'Revenue Insights',
       tooltipData: [
         { label: 'Amount Collected', value: formatCurrency(kpi.totalFeeCollection) },
+        { label: 'Expected Collection', value: formatCurrency(kpi.totalFeeCollection / (kpi.collectionRate/100)) },
         { label: 'Pending Dues', value: formatCurrency(Math.max(0, (kpi.totalFeeCollection / (kpi.collectionRate/100)) - kpi.totalFeeCollection)) }
       ]
     },

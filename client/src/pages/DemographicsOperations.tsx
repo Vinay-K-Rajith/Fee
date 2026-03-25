@@ -334,18 +334,18 @@ export function DemographicsOperations() {
       {/* ── Row 4: Class-wise (55%) + Delay buckets (45%) ──────── */}
       <div className="grid grid-cols-1 lg:grid-cols-11 gap-6">
 
-        <Card className="bento-card lg:col-span-6">
+        <Card className="bento-card lg:col-span-6 flex flex-col">
           <div className="mb-5">
             <h3 className="text-[15px] font-semibold text-slate-800">Class-wise Outstanding Balances</h3>
             <p className="text-xs text-slate-400 mt-0.5">Unpaid balances (bars) and defaulter count (line) per class.</p>
           </div>
-          <div className="h-[320px]">
+          <div className="flex-1 min-h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={classWiseData} margin={{ top: 20, right: 36, bottom: 60, left: 0 }}>
+              <ComposedChart data={classWiseData} margin={{ top: 10, right: 40, bottom: 0, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
-                <XAxis dataKey="className" tick={{ fontSize: 10, fontWeight: 500, fill: '#64748B' }} axisLine={false} tickLine={false} angle={-45} textAnchor="end" height={80} interval={0} />
+                <XAxis dataKey="className" tick={{ fontSize: 8, fontWeight: 500, fill: '#64748B' }} axisLine={false} tickLine={false} angle={-90} textAnchor="end" height={120} interval={0} />
                 <YAxis yAxisId="amt" tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} width={60} />
-                <YAxis yAxisId="cnt" orientation="right" tick={tickStyle} axisLine={false} tickLine={false} width={28} />
+                <YAxis yAxisId="cnt" orientation="right" type="number" ticks={[0, 2, 4, 6, 8]} domain={[0, 8]} tick={{ fontSize: 10, fill: '#64748B' }} axisLine={false} tickLine={false} width={20} />
                 <RechartsTooltip content={<SmartTooltip />} />
                 <Bar yAxisId="amt" dataKey="totalBalance" name="Outstanding Balance" fill={BRAND_INDIGO} radius={[4, 4, 0, 0]} barSize={14} fillOpacity={0.85} />
                 <Line yAxisId="cnt" type="monotone" dataKey="defaulterCount" name="# Defaulters" stroke={STATUS.danger} strokeWidth={2} dot={{ r: 3, fill: STATUS.danger }}>
@@ -354,10 +354,31 @@ export function DemographicsOperations() {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          {/* Legend */}
-          <div className="flex items-center gap-5 mt-3">
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm" style={{ background: BRAND_INDIGO }} /><span className="text-[11px] text-slate-500">Outstanding Balance</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-5 h-0.5" style={{ background: STATUS.danger }} /><span className="text-[11px] text-slate-500"># Defaulters</span></div>
+          {/* Legend & Stats */}
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+            <div className="flex items-center gap-5">
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm" style={{ background: BRAND_INDIGO }} /><span className="text-[9px] text-slate-500">Outstanding Balance</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-5 h-0.5" style={{ background: STATUS.danger }} /><span className="text-[9px] text-slate-500"># Defaulters</span></div>
+            </div>
+            {/* Quick Stats to use empty space at the bottom */}
+            <div className="flex gap-4">
+              {(() => {
+                const highestAmount = [...classWiseData].sort((a, b) => b.totalBalance - a.totalBalance)[0];
+                const highestCount = [...classWiseData].sort((a, b) => b.defaulterCount - a.defaulterCount)[0];
+                return (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[10px] text-slate-400">Highest Due:</p>
+                      <p className="text-[11px] font-semibold text-slate-700">{highestAmount?.className} <span className="text-indigo-600">({formatCurrency(highestAmount?.totalBalance || 0, true)})</span></p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[10px] text-slate-400">Most Defaulters:</p>
+                      <p className="text-[11px] font-semibold text-slate-700">{highestCount?.className} <span className="text-red-500">({highestCount?.defaulterCount || 0})</span></p>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
           </div>
         </Card>
 
