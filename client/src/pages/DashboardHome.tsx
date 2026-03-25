@@ -82,7 +82,7 @@ export function DashboardHome() {
       title: 'Digital Payment Usage',
       value: `${kpi.digitalAdoption.toFixed(1)}%`,
       yoy: calculateYoy(kpi.digitalAdoption, previousKpi?.digitalAdoption),
-      trendLabel: 'Annual Growth',
+      trendLabel: 'from last year',
       benchmark: `Digital share of payments`,
       target: `Target: ${benchmarks.digitalAdoptionTarget}%`,
       status: kpi.digitalAdoption >= benchmarks.digitalAdoptionTarget ? 'good' : 'alert',
@@ -152,7 +152,7 @@ export function DashboardHome() {
                               <div className="mt-2 flex items-center gap-1.5">
                                 <span className={`text-[12px] font-medium flex items-center ${card.yoy >= 0 ? (card.title === 'Unpaid Accounts' ? 'text-rose-600' : 'text-emerald-600') : (card.title === 'Unpaid Accounts' ? 'text-emerald-600' : 'text-rose-600')}`}>
                                   {card.yoy >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                                  {Math.abs(card.yoy).toFixed(1)}% {card.trendLabel}
+                                  {card.yoy >= 0 ? 'Up' : 'Down'} {Math.abs(card.yoy).toFixed(1)}% {card.trendLabel}
                                 </span>
                               </div>
                             )}

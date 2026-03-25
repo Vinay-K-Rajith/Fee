@@ -178,7 +178,7 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
                         <div className="flex items-center justify-center gap-1 text-[10px] mt-2">
                           <span className={`font-medium flex items-center ${s.yoy >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {s.yoy >= 0 ? <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
-                            {Math.abs(s.yoy).toFixed(1)}% Annual Growth
+                            {s.yoy >= 0 ? 'Up' : 'Down'} {Math.abs(s.yoy).toFixed(1)}% from last year
                           </span>
                         </div>
                       )}
@@ -234,7 +234,7 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
         <Card className="bento-card">
           <div className="mb-5 border-b border-slate-100 pb-4">
             <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Monthly Instalment Comparison</h3>
-              <p className="text-xs text-slate-500">Current year month vs previous year month collection — shows annual growth trend.</p>
+              <p className="text-xs text-slate-500">Current year month vs previous year month collection — shows year-over-year changes.</p>
           </div>
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
