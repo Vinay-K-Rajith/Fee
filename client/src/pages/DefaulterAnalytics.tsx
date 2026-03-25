@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import {
-  Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, ComposedChart, Area, AreaChart, Line, Legend,
 } from 'recharts';
 import { useDashboard, formatCurrency, formatPercentage } from '@/hooks/use-api';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { AlertTriangle, Users, TrendingDown, TrendingUp, Calendar } from 'lucide-react';
 import { DefaultersTable } from '@/components/views/DefaultersTable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -93,7 +94,12 @@ export function DefaulterAnalytics() {
             icon: <AlertTriangle className="w-5 h-5" />, 
             bg: 'bg-red-50', 
             color: 'text-red-500',
-            yoy: calculateYoy(defaulterAnalysis.activeDefaultersCount, previousKpi?.activeDefaultersCount)
+            yoy: calculateYoy(defaulterAnalysis.activeDefaultersCount, previousKpi?.activeDefaultersCount),
+            tooltipTitle: 'Active Defaulters Metrics',
+            tooltipData: [
+              { label: 'Active Count', value: defaulterAnalysis.activeDefaultersCount },
+              { label: 'Total Students', value: kpi.totalStudents }
+            ]
           },
           { 
             label: 'Historical Defaulters', 
@@ -101,7 +107,12 @@ export function DefaulterAnalytics() {
             icon: <Users className="w-5 h-5" />, 
             bg: 'bg-orange-50', 
             color: 'text-orange-500',
-            yoy: calculateYoy(defaulterAnalysis.totalDefaulters, previousKpi?.totalDefaulters)
+            yoy: calculateYoy(defaulterAnalysis.totalDefaulters, previousKpi?.totalDefaulters),
+            tooltipTitle: 'Historical Defaulters',
+            tooltipData: [
+              { label: 'Ever Defaulted', value: defaulterAnalysis.totalDefaulters },
+              { label: 'Avg Def. Debt', value: formatCurrency(avgDebt) }
+            ]
           },
           { 
             label: 'Total Defaulted Payments', 
@@ -109,7 +120,12 @@ export function DefaulterAnalytics() {
             icon: <TrendingDown className="w-5 h-5" />, 
             bg: 'bg-slate-50', 
             color: 'text-slate-500',
-            yoy: calculateYoy(defaulterAnalysis.totalDefaultedPayments, previousKpi?.totalDefaultedPayments)
+            yoy: calculateYoy(defaulterAnalysis.totalDefaultedPayments, previousKpi?.totalDefaultedPayments),
+            tooltipTitle: 'Defaulted Payments',
+            tooltipData: [
+              { label: 'Failed Payments', value: defaulterAnalysis.totalDefaultedPayments },
+              { label: 'Prior Year', value: previousKpi?.totalDefaultedPayments ?? 'N/A' }
+            ]
           },
           { 
             label: 'Total Outstanding', 
@@ -117,34 +133,58 @@ export function DefaulterAnalytics() {
             icon: <AlertTriangle className="w-5 h-5" />, 
             bg: 'bg-rose-50', 
             color: 'text-rose-600',
-            yoy: calculateYoy(defaulterAnalysis.totalBalance, previousKpi?.totalBalance)
+            yoy: calculateYoy(defaulterAnalysis.totalBalance, previousKpi?.totalBalance),
+            tooltipTitle: 'Outstanding Summary',
+            tooltipData: [
+              { label: 'Total Unpaid', value: formatCurrency(defaulterAnalysis.totalBalance) },
+              { label: 'Avg per Defaulter', value: formatCurrency(avgDebt) }
+            ]
           },
-        ].map(s => (
-          <Card key={s.label} className="bento-card">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-[#64748B] text-[11px] uppercase font-semibold tracking-[0.1em] mb-2">{s.label}</p>
-                <p className="text-2xl font-semibold tracking-tight text-slate-900 mb-2">{s.value}</p>
-                {s.yoy !== null && s.yoy !== undefined && (
-                  <div className="flex items-center gap-1.5 text-xs">
-                    <span className={`font-medium flex items-center ${s.yoy >= 0 ? (s.label.includes('Defaulter') ? 'text-rose-600' : 'text-emerald-600') : (s.label.includes('Defaulter') ? 'text-emerald-600' : 'text-rose-600')}`}>
-                      {s.yoy >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                      {Math.abs(s.yoy).toFixed(1)}% YoY
-                    </span>
+        ].map((s: any) => (
+          <TooltipProvider key={s.label}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Card className="bento-card cursor-help">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[#64748B] text-[11px] uppercase font-semibold tracking-[0.1em] mb-2">{s.label}</p>
+                      <p className="text-2xl font-semibold tracking-tight text-slate-900 mb-2">{s.value}</p>
+                      {s.yoy !== null && s.yoy !== undefined && (
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <span className={`font-medium flex items-center ${s.yoy >= 0 ? (s.label.includes('Defaulter') ? 'text-rose-600' : 'text-emerald-600') : (s.label.includes('Defaulter') ? 'text-emerald-600' : 'text-rose-600')}`}>
+                            {s.yoy >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                            {Math.abs(s.yoy).toFixed(1)}% Annual Growth
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className={`p-3 rounded-xl shrink-0 ${s.bg} ${s.color}`}>{s.icon}</div>
                   </div>
-                )}
-              </div>
-              <div className={`p-3 rounded-xl shrink-0 ${s.bg} ${s.color}`}>{s.icon}</div>
-            </div>
-          </Card>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="w-56 p-3 bg-slate-900 border-slate-800 shadow-xl" sideOffset={8}>
+                <p className="text-xs font-semibold text-white mb-2 pb-2 border-b border-slate-700/50">
+                  {s.tooltipTitle}
+                </p>
+                <div className="space-y-2">
+                  {s.tooltipData.map((data: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center text-xs">
+                      <span className="text-slate-400">{data.label}</span>
+                      <span className="text-slate-100 font-medium">{data.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* YoY Outstanding Balance */}
+        {/* Annual Growth Outstanding Balance */}
         <Card className="bento-card">
           <div className="mb-5 border-b border-slate-100 pb-4">
-            <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Year-on-Year Outstanding Balance</h3>
+            <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Annual Growth Outstanding Balance</h3>
             <p className="text-xs text-slate-500">Cumulative unpaid balances per academic year. Benchmark: keep defaulter rate below {benchmarks.defaulterRateBenchmark}%.</p>
           </div>
           <div className="h-[280px]">
@@ -159,7 +199,7 @@ export function DefaulterAnalytics() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
                 <XAxis dataKey="year" tick={tickStyle} axisLine={false} tickLine={false} dy={10} />
                 <YAxis tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} />
-                <Tooltip content={<SmartTooltip />} />
+                <RechartsTooltip content={<SmartTooltip />} />
                 <Area type="monotone" dataKey="totalBalance" name="Outstanding Balance" stroke={STATUS.danger} strokeWidth={2.5} fillOpacity={1} fill="url(#balanceGrad)" dot={{ r: 5, fill: STATUS.danger, stroke: '#fff', strokeWidth: 2 }} label={<CustomAreaLabel name="Outstanding Balance" />} />
               </AreaChart>
             </ResponsiveContainer>
@@ -178,7 +218,7 @@ export function DefaulterAnalytics() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
                 <XAxis dataKey="month" tick={tickStyle} axisLine={false} tickLine={false} angle={-30} textAnchor="end" height={50} />
                 <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
-                <Tooltip content={<SmartTooltip />} />
+                <RechartsTooltip content={<SmartTooltip />} />
                 <Bar dataKey="latePaymentCount" name="Late Payments" fill={`${STATUS.warning}CC`} radius={[7, 7, 0, 0]} barSize={26} label={<CustomBarLabel name="Late Payments" />} />
               </ComposedChart>
             </ResponsiveContainer>
@@ -200,6 +240,7 @@ export function DefaulterAnalytics() {
                 <thead>
                   <tr className="border-b border-slate-200 sticky top-0 bg-slate-50">
                     <th className="py-2 px-3 font-semibold text-slate-800 text-xs">Rank</th>
+                    <th className="py-2 px-3 font-semibold text-slate-800 text-xs">Adm No.</th>
                     <th className="py-2 px-3 font-semibold text-slate-800 text-xs">Name</th>
                     <th className="py-2 px-3 font-semibold text-slate-800 text-xs text-right">Late Txns</th>
                     <th className="py-2 px-3 font-semibold text-slate-800 text-xs text-right">Late Fees</th>
@@ -209,6 +250,7 @@ export function DefaulterAnalytics() {
                   {defaulterAnalysis.currentYearTopDefaulters?.slice(0, 8).map((student: any, idx: number) => (
                     <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                       <td className="py-2 px-3 text-center font-bold text-red-600 bg-red-50 text-xs">{idx + 1}</td>
+                      <td className="py-2 px-3 text-slate-500 text-xs">{student.admissionNo}</td>
                       <td className="py-2 px-3 font-medium text-slate-700 text-xs truncate">{student.name}</td>
                       <td className="py-2 px-3 text-right font-bold text-orange-600 text-xs">{student.timesLate}</td>
                       <td className="py-2 px-3 text-right text-slate-600 text-xs">{formatCurrency(student.totalLateFeePaid, true)}</td>
@@ -268,6 +310,7 @@ export function DefaulterAnalytics() {
             <table className="w-full text-left border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
+                  <th className="py-3 font-semibold text-slate-800">Adm No.</th>
                   <th className="py-3 font-semibold text-slate-800">Student</th>
                   <th className="py-3 font-semibold text-slate-800">Class</th>
                   <th className="py-3 font-semibold text-slate-800 text-right">Times Late</th>
@@ -277,6 +320,7 @@ export function DefaulterAnalytics() {
               <tbody>
                 {defaulterAnalysis.riskAnalysis?.map((student, idx) => (
                   <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                    <td className="py-3 text-slate-500">{student.admissionNo}</td>
                     <td className="py-3 font-medium text-slate-700">{student.name}</td>
                     <td className="py-3 text-slate-600">{student.className}</td>
                     <td className="py-3 text-right text-red-600 font-medium">{student.timesLate}</td>
@@ -297,6 +341,7 @@ export function DefaulterAnalytics() {
             <table className="w-full text-left border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
+                  <th className="py-3 font-semibold text-slate-800">Adm No.</th>
                   <th className="py-3 font-semibold text-slate-800">Student</th>
                   <th className="py-3 font-semibold text-slate-800">Class</th>
                   <th className="py-3 font-semibold text-slate-800 text-right">Total Paid</th>
@@ -306,6 +351,7 @@ export function DefaulterAnalytics() {
               <tbody>
                 {defaulterAnalysis.goodBehaviors?.map((student, idx) => (
                   <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                    <td className="py-3 text-slate-500">{student.admissionNo}</td>
                     <td className="py-3 font-medium text-slate-700">{student.name}</td>
                     <td className="py-3 text-slate-600">{student.className}</td>
                     <td className="py-3 text-right text-slate-600">{formatCurrency(student.totalPaid)}</td>

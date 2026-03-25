@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import {
-  Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, ComposedChart, ReferenceLine,
   Area, AreaChart, Legend,
 } from 'recharts';
 import { useDashboard, formatCurrency, formatPercentage } from '@/hooks/use-api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, AlertCircle, Calendar, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, Calendar, BarChart3, Info } from 'lucide-react';
 import { BRAND_INDIGO, BRAND_GREEN, STATUS, CHART_COLORS, GRID_COLOR, tickStyle } from '@/theme';
 import { SmartTooltip, CustomBarLabel, CustomBarLabelVertical, CustomAreaLabel } from '@/components/charts/chartUtils';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 
 export function CollectionPerformance() {
@@ -137,33 +138,67 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
                 label: 'Collection Rate', 
                 value: `${displayRate.toFixed(1)}%`, 
                 color: isGood ? BRAND_GREEN : STATUS.warning,
-                yoy: calculateYoy(displayRate, previousKpi?.collectionRate)
+                yoy: calculateYoy(displayRate, previousKpi?.collectionRate),
+                tooltipTitle: 'Collection Performance',
+                tooltipData: [
+                  { label: 'Expected Revenue', value: formatCurrency(specificYearData?.totalExpected ?? kpi.totalExpected, true) },
+                  { label: 'Regional Benchmark', value: `${benchmarks.collectionRateBenchmark}%` }
+                ]
               },
               { 
                 label: 'Total Collected', 
                 value: formatCurrency(specificYearData?.totalCollected ?? kpi.totalFeeCollection, true), 
                 color: BRAND_INDIGO,
-                yoy: calculateYoy(specificYearData?.totalCollected ?? kpi.totalFeeCollection, previousKpi?.totalFeeCollection)
+                yoy: calculateYoy(specificYearData?.totalCollected ?? kpi.totalFeeCollection, previousKpi?.totalFeeCollection),
+                tooltipTitle: 'Revenue Realized',
+                tooltipData: [
+                  { label: 'Total Received', value: formatCurrency(specificYearData?.totalCollected ?? kpi.totalFeeCollection) },
+                  { label: 'Prev. Year', value: previousKpi ? formatCurrency(previousKpi.totalFeeCollection, true) : 'N/A' }
+                ]
               },
               { 
                 label: 'Outstanding', 
                 value: formatCurrency(specificYearData?.totalBalance ?? kpi.totalBalance, true), 
                 color: STATUS.danger,
-                yoy: calculateYoy(specificYearData?.totalBalance ?? kpi.totalBalance, previousKpi?.totalBalance)
+                yoy: calculateYoy(specificYearData?.totalBalance ?? kpi.totalBalance, previousKpi?.totalBalance),
+                tooltipTitle: 'Pending Balances',
+                tooltipData: [
+                  { label: 'Total Unpaid', value: formatCurrency(specificYearData?.totalBalance ?? kpi.totalBalance) },
+                  { label: 'Defaulters Count', value: kpi.totalStudents ? dashboard.defaulterAnalysis?.activeDefaultersCount ?? 'N/A' : 'N/A' }
+                ]
               },
-            ].map(s => (
-              <div key={s.label} className="bg-slate-50 rounded-xl px-5 py-4 text-center border border-slate-100">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">{s.label}</p>
-                <p className="text-xl font-bold" style={{ color: s.color }}>{s.value}</p>
-                {s.yoy !== null && s.yoy !== undefined && (
-                  <div className="flex items-center justify-center gap-1 text-[10px] mt-2">
-                    <span className={`font-medium flex items-center ${s.yoy >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {s.yoy >= 0 ? <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
-                      {Math.abs(s.yoy).toFixed(1)}% YoY
-                    </span>
-                  </div>
-                )}
-              </div>
+            ].map((s: any) => (
+              <TooltipProvider key={s.label}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="bg-slate-50 rounded-xl px-5 py-4 text-center border border-slate-100 cursor-help">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">{s.label}</p>
+                      <p className="text-xl font-bold" style={{ color: s.color }}>{s.value}</p>
+                      {s.yoy !== null && s.yoy !== undefined && (
+                        <div className="flex items-center justify-center gap-1 text-[10px] mt-2">
+                          <span className={`font-medium flex items-center ${s.yoy >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {s.yoy >= 0 ? <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
+                            {Math.abs(s.yoy).toFixed(1)}% Annual Growth
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-56 p-3 bg-slate-900 border-slate-800 shadow-xl" sideOffset={8}>
+                    <p className="text-xs font-semibold text-white mb-2 pb-2 border-b border-slate-700/50">
+                      {s.tooltipTitle}
+                    </p>
+                    <div className="space-y-2">
+                      {s.tooltipData.map((data: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">{data.label}</span>
+                          <span className="text-slate-100 font-medium">{data.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             ))}
           </div>
         </div>
@@ -188,7 +223,7 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
                 <XAxis dataKey="month" tick={tickStyle} axisLine={false} tickLine={false} angle={-30} textAnchor="end" height={50} />
                 <YAxis tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} />
-                <Tooltip content={<SmartTooltip />} />
+                <RechartsTooltip content={<SmartTooltip />} />
                 <Area type="monotone" dataKey="totalCollected" name="Collected" stroke={BRAND_INDIGO} strokeWidth={2.5} fillOpacity={1} fill="url(#colIndigoGrad)" dot={{ r: 4, fill: BRAND_INDIGO, stroke: '#fff', strokeWidth: 2 }} label={<CustomAreaLabel name="Collected" />} />
               </AreaChart>
             </ResponsiveContainer>
@@ -199,7 +234,7 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
         <Card className="bento-card">
           <div className="mb-5 border-b border-slate-100 pb-4">
             <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Monthly Instalment Comparison</h3>
-              <p className="text-xs text-slate-500">Current year month vs previous year month collection — shows YoY growth trend.</p>
+              <p className="text-xs text-slate-500">Current year month vs previous year month collection — shows annual growth trend.</p>
           </div>
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -208,7 +243,7 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
                 <XAxis dataKey="month" tick={tickStyle} axisLine={false} tickLine={false} angle={-30} textAnchor="end" height={50} />
                 <YAxis yAxisId="amt" tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="pct" orientation="right" tick={tickStyle} tickFormatter={(v) => `${v.toFixed(0)}%`} axisLine={false} tickLine={false} />
-                <Tooltip content={<SmartTooltip />} />
+                <RechartsTooltip content={<SmartTooltip />} />
                 <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 500 }} />
                   <Bar yAxisId="amt" dataKey="previous" name="Previous Year" fill="#CBD5E1" radius={[6, 6, 0, 0]} barSize={16} />
                   <Bar yAxisId="amt" dataKey="current" name="Current Year" fill={BRAND_INDIGO} radius={[6, 6, 0, 0]} barSize={16} />
@@ -233,7 +268,7 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={GRID_COLOR} />
                 <XAxis type="number" tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} />
                 <YAxis dataKey="name" type="category" tick={{ ...tickStyle, fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} width={44} />
-                <Tooltip content={<SmartTooltip />} />
+                <RechartsTooltip content={<SmartTooltip />} />
                 <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 500 }} />
                 <Bar dataKey="expected" name="Expected/Scheduled" fill="#16A34A" radius={[0, 6, 6, 0]} barSize={16} label={<CustomBarLabelVertical name="Expected" />} />
                 <Bar dataKey="collected" name="Actually Collected" fill={BRAND_INDIGO} radius={[0, 6, 6, 0]} barSize={16} label={<CustomBarLabelVertical name="Collected" />} />
@@ -255,7 +290,7 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
                 <XAxis dataKey="year" tick={tickStyle} axisLine={false} tickLine={false} dy={10} />
                 <YAxis yAxisId="amt" tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="rate" orientation="right" tick={tickStyle} tickFormatter={(v) => `${v.toFixed(0)}%`} axisLine={false} tickLine={false} domain={[80, 105]} />
-                <Tooltip content={<SmartTooltip />} />
+                <RechartsTooltip content={<SmartTooltip />} />
                 <ReferenceLine yAxisId="rate" y={benchmarks.collectionRateBenchmark} stroke={STATUS.warning} strokeDasharray="4 4" label={{ value: `${benchmarks.collectionRateBenchmark}% target`, fill: STATUS.warning, fontSize: 10, position: 'insideTopLeft' }} />
                 <Bar yAxisId="amt" dataKey="totalCollected" name="Collected" fill={BRAND_INDIGO} radius={[6, 6, 0, 0]} barSize={40} label={<CustomBarLabel name="Collected" />} />
                 <Bar yAxisId="amt" dataKey="totalBalance" name="Outstanding" fill={`${STATUS.danger}60`} radius={[6, 6, 0, 0]} barSize={40} label={<CustomBarLabel name="Outstanding" />} />
@@ -283,7 +318,7 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
                 <XAxis dataKey="year" tick={tickStyle} axisLine={false} tickLine={false} dy={10} />
                 <YAxis tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} />
-                <Tooltip content={<SmartTooltip />} />
+                <RechartsTooltip content={<SmartTooltip />} />
                 <Area connectNulls type="monotone" dataKey="actualCollected" name="Actual Collected" stroke={BRAND_INDIGO} strokeWidth={2.5} fill="url(#actualGrad)" dot={{ r: 4, fill: BRAND_INDIGO }} />
                 <Line connectNulls type="monotone" dataKey="forecastCollected" name="Projected (Forecast)" stroke={BRAND_INDIGO} strokeWidth={2} strokeDasharray="6 4" dot={{ r: 4, fill: '#fff', stroke: BRAND_INDIGO, strokeWidth: 2 }} />
                 <Line connectNulls type="monotone" dataKey="actualExpected" name="Expected" stroke={BRAND_GREEN} strokeWidth={1.5} strokeDasharray="4 4" dot={false} />

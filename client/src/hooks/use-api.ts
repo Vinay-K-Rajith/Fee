@@ -116,11 +116,11 @@ export function useStudents() {
 export function formatCurrency(amount: number, compact = false): string {
   if (compact) {
     if (amount >= 10000000) {
-      return `₹${parseFloat((amount / 10000000).toFixed(2))}Cr`;
+      return `₹${(amount / 10000000).toFixed(1)}Cr`;
     } else if (amount >= 100000) {
-      return `₹${parseFloat((amount / 100000).toFixed(2))}L`;
+      return `₹${(amount / 100000).toFixed(1)}L`;
     } else if (amount >= 1000) {
-      return `₹${parseFloat((amount / 1000).toFixed(1))}k`;
+      return `₹${(amount / 1000).toFixed(1)}k`;
     }
   }
   return new Intl.NumberFormat("en-IN", {

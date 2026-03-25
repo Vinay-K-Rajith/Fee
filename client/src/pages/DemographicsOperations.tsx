@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import {
-  Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, ComposedChart, PieChart, Pie, Cell,
-  BarChart, Line,
+  BarChart, Line, LabelList,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from 'recharts';
 import { useDashboard, formatCurrency, formatPercentage } from '@/hooks/use-api';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   Calendar, CreditCard, Wallet, Banknote,
   AlertCircle, Clock, CheckCircle2, RefreshCcw, TrendingUp, TrendingDown,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BRAND_INDIGO, BRAND_GREEN, STATUS, CHART_COLORS, GRID_COLOR, tickStyle } from '@/theme';
-import { SmartTooltip, CustomBarLabel } from '@/components/charts/chartUtils';
+import { SmartTooltip, CustomBarLabel, CustomAreaLabel } from '@/components/charts/chartUtils';
 
 const WHITE_TIP = {
   background: '#fff',
@@ -62,7 +63,7 @@ export function DemographicsOperations() {
   const digitalAdoptionRate = totalTrans > 0 ? (digitalTrans / totalTrans) * 100 : 0;
   const totalAmount = paymentModeAnalysis.reduce((s: number, m: any) => s + m.totalAmount, 0);
   const avgTransaction = totalTrans > 0 ? totalAmount / totalTrans : 0;
-  const classWiseData = defaulterAnalysis.classWise.slice(0, 14);
+  const classWiseData = defaulterAnalysis.classWise;
   const occupationPieData = defaulterAnalysis.occupationWise.slice(0, 6);
 
   // Radar: value in lakhs per payment mode (single metric, clean spider)
@@ -103,7 +104,12 @@ export function DemographicsOperations() {
             icon: <CreditCard className="w-5 h-5" />,
             iconBg: 'bg-blue-50', iconColor: 'text-blue-500',
             accent: '#3B82F6',
-            yoy: calculateYoy(totalTrans, previousKpi ? (previousKpi.paymentModes ? Object.values(previousKpi.paymentModes).reduce((a:any,b:any) => a+b, 0) : 0) : undefined)
+            yoy: calculateYoy(totalTrans, previousKpi ? (previousKpi.paymentModes ? Object.values(previousKpi.paymentModes).reduce((a:any,b:any) => a+b, 0) : 0) : undefined),
+            tooltipTitle: 'Transaction Insights',
+            tooltipData: [
+              { label: 'Total Volume', value: totalTrans.toLocaleString('en-IN') },
+              { label: 'Total Value', value: formatCurrency(totalAmount) }
+            ]
           },
           {
             label: 'Digital Adoption',
@@ -112,7 +118,12 @@ export function DemographicsOperations() {
             icon: <Banknote className="w-5 h-5" />,
             iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500',
             accent: BRAND_GREEN,
-            yoy: calculateYoy(digitalAdoptionRate, previousKpi?.digitalAdoption)
+            yoy: calculateYoy(digitalAdoptionRate, previousKpi?.digitalAdoption),
+            tooltipTitle: 'Digital Shift',
+            tooltipData: [
+              { label: 'Digital %', value: formatPercentage(digitalAdoptionRate) },
+              { label: 'Digital Trans.', value: digitalTrans.toLocaleString() }
+            ]
           },
           {
             label: 'Avg Transaction Value',
@@ -121,29 +132,53 @@ export function DemographicsOperations() {
             icon: <Wallet className="w-5 h-5" />,
             iconBg: 'bg-violet-50', iconColor: 'text-violet-500',
             accent: '#7C3AED',
-            yoy: previousKpi ? calculateYoy(avgTransaction, avgTransaction * (1 - (previousKpi.totalFeeCollection / kpi.totalFeeCollection))) : null
+            yoy: previousKpi ? calculateYoy(avgTransaction, avgTransaction * (1 - (previousKpi.totalFeeCollection / kpi.totalFeeCollection))) : null,
+            tooltipTitle: 'Transaction Value',
+            tooltipData: [
+              { label: 'Avg Value', value: formatCurrency(avgTransaction) },
+              { label: 'Collections', value: formatCurrency(totalAmount, true) }
+            ]
           },
-        ].map(s => (
-          <Card key={s.label} className="bento-card">
-            {/* Left accent bar */}
-            <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ background: s.accent }} />
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] uppercase font-semibold tracking-[0.08em] text-slate-400 mb-1">{s.label}</p>
-                <p className="text-[22px] font-semibold tracking-tight text-slate-900 leading-none mb-1">{s.value}</p>
-                <p className="text-[11px] text-slate-400">{s.sub}</p>
-                {s.yoy !== null && s.yoy !== undefined && (
-                  <div className="flex items-center gap-1 text-[10px] mt-2">
-                    <span className={`font-medium flex items-center ${s.yoy >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {s.yoy >= 0 ? <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
-                      {Math.abs(s.yoy).toFixed(1)}% YoY
-                    </span>
+        ].map((s: any) => (
+          <TooltipProvider key={s.label}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Card className="bento-card cursor-help">
+                  {/* Left accent bar */}
+                  <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ background: s.accent }} />
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] uppercase font-semibold tracking-[0.08em] text-slate-400 mb-1">{s.label}</p>
+                      <p className="text-[22px] font-semibold tracking-tight text-slate-900 leading-none mb-1">{s.value}</p>
+                      <p className="text-[11px] text-slate-400">{s.sub}</p>
+                      {s.yoy !== null && s.yoy !== undefined && (
+                        <div className="flex items-center gap-1 text-[10px] mt-2">
+                          <span className={`font-medium flex items-center ${s.yoy >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {s.yoy >= 0 ? <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
+                            {Math.abs(s.yoy).toFixed(1)}% Annual Growth
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className={`p-3 rounded-xl shrink-0 ${s.iconBg} ${s.iconColor}`}>{s.icon}</div>
                   </div>
-                )}
-              </div>
-              <div className={`p-3 rounded-xl shrink-0 ${s.iconBg} ${s.iconColor}`}>{s.icon}</div>
-            </div>
-          </Card>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="w-56 p-3 bg-slate-900 border-slate-800 shadow-xl" sideOffset={8}>
+                <p className="text-xs font-semibold text-white mb-2 pb-2 border-b border-slate-700/50">
+                  {s.tooltipTitle}
+                </p>
+                <div className="space-y-2">
+                  {s.tooltipData.map((data: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center text-xs">
+                      <span className="text-slate-400">{data.label}</span>
+                      <span className="text-slate-100 font-medium">{data.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ))}
       </div>
 
@@ -204,7 +239,7 @@ export function DemographicsOperations() {
                     strokeWidth={2.5}
                     dot={{ r: 4, fill: BRAND_INDIGO, strokeWidth: 0 }}
                   />
-                  <Tooltip contentStyle={WHITE_TIP} />
+                  <RechartsTooltip contentStyle={WHITE_TIP} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
@@ -259,7 +294,7 @@ export function DemographicsOperations() {
                     <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={WHITE_TIP} />
+                <RechartsTooltip contentStyle={WHITE_TIP} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -292,14 +327,16 @@ export function DemographicsOperations() {
           </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={classWiseData} margin={{ top: 10, right: 36, bottom: 28, left: 0 }}>
+              <ComposedChart data={classWiseData} margin={{ top: 20, right: 36, bottom: 28, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
                 <XAxis dataKey="className" tick={tickStyle} axisLine={false} tickLine={false} angle={-40} textAnchor="end" height={60} />
                 <YAxis yAxisId="amt" tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} width={60} />
                 <YAxis yAxisId="cnt" orientation="right" tick={tickStyle} axisLine={false} tickLine={false} width={28} />
-                <Tooltip content={<SmartTooltip />} />
+                <RechartsTooltip content={<SmartTooltip />} />
                 <Bar yAxisId="amt" dataKey="totalBalance" name="Outstanding Balance" fill={BRAND_INDIGO} radius={[4, 4, 0, 0]} barSize={16} fillOpacity={0.85} />
-                <Line yAxisId="cnt" type="monotone" dataKey="defaulterCount" name="# Defaulters" stroke={STATUS.danger} strokeWidth={2} dot={{ r: 3, fill: STATUS.danger }} />
+                <Line yAxisId="cnt" type="monotone" dataKey="defaulterCount" name="# Defaulters" stroke={STATUS.danger} strokeWidth={2} dot={{ r: 3, fill: STATUS.danger }}>
+                  <LabelList dataKey="defaulterCount" position="top" content={<CustomAreaLabel name="Defaulters" />} />
+                </Line>
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -321,7 +358,7 @@ export function DemographicsOperations() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
                 <XAxis dataKey="label" tick={tickStyle} axisLine={false} tickLine={false} />
                 <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={WHITE_TIP} />
+                <RechartsTooltip contentStyle={WHITE_TIP} />
                 <Bar dataKey="count" name="Transactions" radius={[7, 7, 0, 0]} barSize={40} label={<CustomBarLabel name="Transactions" />}>
                   {dashboard.extendedAnalysis.delayTimeBuckets.map((_: any, i: number) => (
                     <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />

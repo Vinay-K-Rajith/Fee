@@ -41,10 +41,10 @@ export function formatCompactValue(name: string, value: number): string {
   const absValue = Math.abs(value);
   
   if (absValue >= 10000000) { // 1 Crore = 10 Million
-    return `₹${(value / 10000000).toFixed(absValue >= 50000000 ? 0 : 1)}Cr`;
+    return `₹${(value / 10000000).toFixed(1)}Cr`;
   }
   if (absValue >= 100000) { // 1 Lakh = 100k
-    return `₹${(value / 100000).toFixed(absValue >= 500000 ? 0 : 1)}L`;
+    return `₹${(value / 100000).toFixed(1)}L`;
   }
   if (absValue >= 1000) {
     return `₹${(value / 1000).toFixed(1)}k`;

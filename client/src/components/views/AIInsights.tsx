@@ -100,7 +100,7 @@ const markdownComponents = {
     </div>
   ),
   thead: ({ children, ...props }: any) => (
-    <thead className="bg-gradient-to-r from-indigo-50 to-blue-50" {...props}>{children}</thead>
+    <thead className="bg-gradient-to-r from-emerald-50 to-slate-50" {...props}>{children}</thead>
   ),
   tbody: ({ children, ...props }: any) => (
     <tbody className="divide-y divide-slate-100" {...props}>{children}</tbody>
@@ -109,21 +109,21 @@ const markdownComponents = {
     <tr className="hover:bg-slate-50 transition-colors" {...props}>{children}</tr>
   ),
   th: ({ children, ...props }: any) => (
-    <th className="px-3 py-2 text-left text-xs font-semibold text-indigo-900 uppercase tracking-wider whitespace-nowrap" {...props}>{children}</th>
+    <th className="px-3 py-2 text-left text-xs font-semibold text-emerald-900 uppercase tracking-wider whitespace-nowrap" {...props}>{children}</th>
   ),
   td: ({ children, ...props }: any) => (
     <td className="px-3 py-2 text-sm text-slate-700 whitespace-nowrap" {...props}>{children}</td>
   ),
   blockquote: ({ children, ...props }: any) => (
-    <blockquote className="border-l-4 border-indigo-300 bg-indigo-50/50 pl-4 py-2 my-2 rounded-r-lg text-sm text-slate-700 italic" {...props}>{children}</blockquote>
+    <blockquote className="border-l-4 border-emerald-300 bg-emerald-50/50 pl-4 py-2 my-2 rounded-r-lg text-sm text-slate-700 italic" {...props}>{children}</blockquote>
   ),
   code: ({ children, className, ...props }: any) => {
     const isInline = !className;
     if (isInline) {
-      return <code className="bg-slate-100 text-indigo-700 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>;
+      return <code className="bg-slate-100 text-emerald-700 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>;
     }
     return (
-      <pre className="bg-slate-900 text-slate-100 rounded-lg p-4 overflow-x-auto my-2 text-sm">
+      <pre className="bg-slate-50 text-slate-900 rounded-lg p-4 overflow-x-auto my-2 text-sm border border-slate-200">
         <code className={className} {...props}>{children}</code>
       </pre>
     );
@@ -132,7 +132,7 @@ const markdownComponents = {
     <hr className="my-3 border-slate-200" {...props} />
   ),
   a: ({ children, ...props }: any) => (
-    <a className="text-indigo-600 underline hover:text-indigo-800 transition-colors" {...props}>{children}</a>
+    <a className="text-emerald-600 underline hover:text-emerald-800 transition-colors" {...props}>{children}</a>
   ),
 };
 
@@ -397,9 +397,9 @@ export function AIInsights() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto">
+    <div className="flex flex-col h-[calc(100vh-80px)] max-w-6xl mx-auto">
       <div className="flex items-center gap-3 p-6 pb-4 shrink-0">
-        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl">
+        <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl">
           <Sparkles className="w-6 h-6" />
         </div>
         <div className="flex-1">
@@ -424,12 +424,12 @@ export function AIInsights() {
         {messages.map((msg) => (
           <div key={msg.id} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                <Bot className="w-4 h-4 text-indigo-600" />
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                <Bot className="w-4 h-4 text-emerald-600" />
               </div>
             )}
 
-            <div className={`${msg.chartData ? 'w-full max-w-full p-5' : 'max-w-[85%] rounded-2xl px-5 py-3.5'} rounded-2xl ${msg.role === 'user' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-700 shadow-sm'}`}>
+            <div className={`${msg.chartData ? 'w-full max-w-full p-5' : 'max-w-[85%] rounded-2xl px-5 py-3.5'} rounded-2xl ${msg.role === 'user' ? 'bg-emerald-600 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-700 shadow-sm'}`}>
               {msg.id === 'loading' ? (
                 <div className="flex items-center gap-2 text-slate-500">
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -445,7 +445,7 @@ export function AIInsights() {
                         setSelectedContent(msg.content);
                         setEmailModalOpen(true);
                       }}
-                      className="text-xs text-slate-400 hover:text-indigo-600 h-6 px-2 pr-3 flex items-center gap-1 bg-slate-50 rounded-md"
+                      className="text-xs text-slate-400 hover:text-emerald-600 h-6 px-2 pr-3 flex items-center gap-1 bg-slate-50 rounded-md"
                     >
                       <Mail className="w-3 h-3" /> Email
                     </Button>
@@ -453,7 +453,7 @@ export function AIInsights() {
                       variant="ghost" 
                       size="sm" 
                       onClick={() => handleDownloadPDF(msg.id, `report-content-${msg.id}`)}
-                      className="text-xs text-slate-400 hover:text-indigo-600 h-6 px-2 pr-3 flex items-center gap-1 bg-slate-50 rounded-md"
+                      className="text-xs text-slate-400 hover:text-emerald-600 h-6 px-2 pr-3 flex items-center gap-1 bg-slate-50 rounded-md"
                     >
                       <Download className="w-3 h-3" /> PDF
                     </Button>
@@ -496,7 +496,7 @@ export function AIInsights() {
       </div>
 
       <div className="p-6 shrink-0 bg-transparent">
-        <form onSubmit={onSubmit} className="relative flex items-center bg-white shadow-sm border border-slate-200 rounded-full pr-1 overflow-hidden transition-shadow focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2">
+        <form onSubmit={onSubmit} className="relative flex items-center bg-white shadow-sm border border-slate-200 rounded-full pr-1 overflow-hidden transition-shadow focus-within:ring-2 focus-within:ring-emerald-500 focus-within:ring-offset-2">
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -508,7 +508,7 @@ export function AIInsights() {
             type="submit"
             disabled={!query.trim() || chatMutation.isPending}
             size="icon"
-            className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 mx-1 shrink-0"
+            className="w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 mx-1 shrink-0"
           >
             <Send className="w-4 h-4 text-white -ml-0.5" />
           </Button>
