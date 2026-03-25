@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useDefaulterAnalysis } from '@/hooks/use-api';
@@ -160,17 +160,17 @@ export function DefaulterLocationMap() {
                       }}
                       radius={radius}
                     >
-                      <Popup>
-                        <div className="p-3 text-sm">
+                      <Tooltip direction="top" opacity={1} className="bg-transparent border-0 shadow-none">
+                        <div className="bg-white rounded-lg shadow-xl border border-slate-100 p-3 text-sm">
                           <h4 className="font-bold text-base mb-2 text-[#D97706]">{loc.location}</h4>
-                          <div className="space-y-1">
+                          <div className="space-y-1 text-slate-700">
                             <p><strong>Default Rate:</strong> <span className="text-[#D97706] font-semibold">{loc.defaulterRate.toFixed(1)}%</span></p>
                             <p><strong>Outstanding Amount:</strong> ₹{(loc.totalBalance / 1000).toFixed(0)}k</p>
                             <p><strong>Defaulter Count:</strong> {loc.defaulterCount}</p>
                             <p className="text-xs text-gray-500 pt-1">🔴 CRITICAL HOTSPOT</p>
                           </div>
                         </div>
-                      </Popup>
+                      </Tooltip>
                     </CircleMarker>
                   );
                 })}
@@ -196,17 +196,17 @@ export function DefaulterLocationMap() {
                       }}
                       radius={radius}
                     >
-                      <Popup>
-                        <div className="p-3 text-sm">
+                      <Tooltip direction="top" opacity={1} className="bg-transparent border-0 shadow-none">
+                        <div className="bg-white rounded-lg shadow-xl border border-slate-100 p-3 text-sm">
                           <h4 className="font-bold text-base mb-2 text-[#1E40AF]">{loc.location}</h4>
-                          <div className="space-y-1">
+                          <div className="space-y-1 text-slate-700">
                             <p><strong>Default Rate:</strong> <span className="text-[#1E40AF] font-semibold">{loc.defaulterRate.toFixed(1)}%</span></p>
                             <p><strong>Outstanding Amount:</strong> ₹{(loc.totalBalance / 1000).toFixed(0)}k</p>
                             <p><strong>Defaulter Count:</strong> {loc.defaulterCount}</p>
                             <p className="text-xs text-gray-500 pt-1">🟡 MEDIUM RISK</p>
                           </div>
                         </div>
-                      </Popup>
+                      </Tooltip>
                     </CircleMarker>
                   );
                 })}
@@ -232,17 +232,17 @@ export function DefaulterLocationMap() {
                       }}
                       radius={radius}
                     >
-                      <Popup>
-                        <div className="p-3 text-sm">
+                      <Tooltip direction="top" opacity={1} className="bg-transparent border-0 shadow-none">
+                        <div className="bg-white rounded-lg shadow-xl border border-slate-100 p-3 text-sm">
                           <h4 className="font-bold text-base mb-2 text-[#047857]">{loc.location}</h4>
-                          <div className="space-y-1">
+                          <div className="space-y-1 text-slate-700">
                             <p><strong>Default Rate:</strong> <span className="text-[#047857] font-semibold">{loc.defaulterRate.toFixed(1)}%</span></p>
                             <p><strong>Outstanding Amount:</strong> ₹{(loc.totalBalance / 1000).toFixed(0)}k</p>
                             <p><strong>Defaulter Count:</strong> {loc.defaulterCount}</p>
                             <p className="text-xs text-gray-500 pt-1">🟢 LOW RISK</p>
                           </div>
                         </div>
-                      </Popup>
+                      </Tooltip>
                     </CircleMarker>
                   );
                 })}

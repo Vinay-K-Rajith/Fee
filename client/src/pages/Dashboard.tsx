@@ -8,6 +8,7 @@ import {
   DollarSign,
   AlertCircle,
   Zap,
+  Info,
 } from "lucide-react";
 import { ExecutiveOverview } from "@/components/views/ExecutiveOverview";
 import { DefaulterAnalysis } from "@/components/views/DefaulterAnalysis";
@@ -15,6 +16,7 @@ import { LeakageConcessions } from "@/components/views/LeakageConcessions";
 import { AIInsights } from "@/components/views/AIInsights";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboard, formatCurrency, formatPercentage } from "@/hooks/use-api";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export function Dashboard() {
   const { data: dashboard, isLoading, error } = useDashboard();
@@ -78,57 +80,87 @@ export function Dashboard() {
   const quickStats = [
     {
       id: "collection",
-      title: "Overall Collection Rate",
+      title: "Total Revenue Collected",
+      tooltipTitle: "Collection Insights",
+      tooltipData: [
+        { label: 'Amount Collected', value: formatCurrency(kpi.totalFeeCollection ?? 0, true) },
+        { label: 'Target Rate', value: formatPercentage(benchmarks.collectionRateBenchmark) }
+      ],
       value: formatPercentage(kpi.collectionRate),
+      valueLabel: "Collection Rate",
       benchmark: `Target: ${formatPercentage(benchmarks.collectionRateBenchmark)}`,
       icon: DollarSign,
       color: "text-emerald-500",
       bgColor: "bg-emerald-50",
       trend: kpi.collectionRate >= benchmarks.collectionRateBenchmark ? "up" : "down",
       percentChange: collectionRateChange,
-      compareLabel: `vs previous year`,
+      compareLabel: `compared to last year`,
     },
     {
       id: "defaulters",
-      title: "Total Defaulters",
+      title: "Unpaid Accounts",
+      tooltipTitle: "Defaulter Metrics",
+      tooltipData: [
+        { label: 'Active Defaulters', value: defaulterAnalysis.totalDefaulters },
+        { label: 'Benchmark', value: `<${formatPercentage(benchmarks.defaulterRateBenchmark)}%` }
+      ],
       value: defaulterAnalysis.totalDefaulters,
-      benchmark: `${formatPercentage(defaulterRatePercent)} rate`,
+      valueLabel: "Active Unpaid",
+      benchmark: `${formatPercentage(defaulterRatePercent)}% rate • Target: <${formatPercentage(benchmarks.defaulterRateBenchmark)}%`,
       icon: AlertCircle,
       color: "text-red-500",
       bgColor: "bg-red-50",
       trend: defaulterRatePercent < benchmarks.defaulterRateBenchmark ? "down" : "up",
       percentChange: defaultersChange,
-      compareLabel: `vs previous year`,
+      compareLabel: `compared to last year`,
     },
     {
       id: "habitual",
-      title: "Habitual Defaulters",
+      title: "Repeat Defaulters",
+      tooltipTitle: "Habitual Defaulters",
+      tooltipData: [
+        { label: 'Repeat Cases', value: habitualDefaulters },
+        { label: 'Action Status', value: 'Under Review' }
+      ],
       value: habitualDefaulters,
-      benchmark: `${habitualDefaulters} repeat cases`,
+      valueLabel: "Active Cases",
+      benchmark: `${habitualDefaulters} requiring attention`,
       icon: Users,
       color: "text-orange-500",
       bgColor: "bg-orange-50",
       trend: "alert",
       percentChange: 0,
-      compareLabel: `monitoring`,
+      compareLabel: `under review`,
     },
     {
       id: "tcloss",
-      title: "TC/Dropout Loss",
+      title: "Student Attrition Loss",
+      tooltipTitle: "Attrition Impact",
+      tooltipData: [
+        { label: 'TC Dropouts', value: tcDropoutAnalysis.totalTcDropouts },
+        { label: 'Revenue Lost', value: formatCurrency(tcDropoutAnalysis.revenueLoss, true) }
+      ],
       value: formatCurrency(tcDropoutAnalysis.revenueLoss, true),
-      benchmark: `${tcDropoutAnalysis.totalTcDropouts} students`,
+      valueLabel: "Revenue Lost",
+      benchmark: `${tcDropoutAnalysis.totalTcDropouts} students affected`,
       icon: TrendingDown,
       color: "text-red-600",
       bgColor: "bg-red-50",
       trend: "down",
       percentChange: balanceChange,
-      compareLabel: `vs previous year`,
+      compareLabel: `compared to last year`,
     },
     {
       id: "concession",
-      title: "Concession Loss",
+      title: "Concession Discount Impact",
+      tooltipTitle: "Concession Insights",
+      tooltipData: [
+        { label: 'Students w/ Discount', value: concessionAnalysis.studentsWithConcession },
+        { label: 'Total Value', value: formatCurrency(concessionAnalysis.totalConcession, true) }
+      ],
       value: formatCurrency(concessionAnalysis.totalConcession, true),
-      benchmark: `${formatPercentage(concessionAnalysis.concessionRate)}% of collection`,
+      valueLabel: "Discount Provided",
+      benchmark: `${formatPercentage(concessionAnalysis.concessionRate)}% of collections`,
       icon: AlertCircle,
       color: "text-amber-500",
       bgColor: "bg-amber-50",
@@ -136,9 +168,15 @@ export function Dashboard() {
     },
     {
       id: "concdefault",
-      title: "Concession Defaulters",
+      title: "Concession Account Risk",
+      tooltipTitle: "Concession Risk",
+      tooltipData: [
+        { label: 'Defaulting Students', value: concessionDefaultersCount },
+        { label: '% of Concessions', value: formatPercentage(concessionDefaulterRate) }
+      ],
       value: concessionDefaultersCount,
-      benchmark: `${formatPercentage(concessionDefaulterRate)}% rate`,
+      valueLabel: "Defaulting with Discount",
+      benchmark: `${formatPercentage(concessionDefaulterRate)}% of concession students`,
       icon: AlertCircle,
       color: "text-yellow-600",
       bgColor: "bg-yellow-50",
@@ -146,8 +184,14 @@ export function Dashboard() {
     },
     {
       id: "digital",
-      title: "Digital Adoption",
+      title: "Digital Payment Usage",
+      tooltipTitle: "Channel Metrics",
+      tooltipData: [
+        { label: 'Digital %', value: `${kpi.digitalAdoption.toFixed(1)}%` },
+        { label: 'Target Target', value: `${benchmarks.digitalAdoptionTarget}%` }
+      ],
       value: `${kpi.digitalAdoption.toFixed(1)}%`,
+      valueLabel: "of all payments",
       benchmark: `Target: ${benchmarks.digitalAdoptionTarget}%`,
       icon: Zap,
       color: "text-blue-500",
@@ -156,8 +200,14 @@ export function Dashboard() {
     },
     {
       id: "retention",
-      title: "Retention Rate",
+      title: "Student Retention Rate",
+      tooltipTitle: "Retention Stats",
+      tooltipData: [
+        { label: 'Current Retention', value: formatPercentage(tcDropoutAnalysis.retentionRate) },
+        { label: 'Benchmark Target', value: formatPercentage(retentionRateBenchmark) }
+      ],
       value: formatPercentage(tcDropoutAnalysis.retentionRate),
+      valueLabel: "Retention",
       benchmark: `Target: ${formatPercentage(retentionRateBenchmark)}`,
       icon: Users,
       color: "text-green-500",
@@ -192,27 +242,52 @@ export function Dashboard() {
             const changeIcon = stat.percentChange >= 0 ? '↑' : '↓';
             
             return (
-              <Card key={stat.id} className="bento-card border-none overflow-hidden hover:shadow-lg transition-all" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
-                <div className="p-5">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className={`p-2 ${stat.bgColor} rounded-lg`}>
-                      <Icon className={`h-5 w-5 ${stat.color}`} />
+              <TooltipProvider key={stat.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Card className="bento-card border-none overflow-hidden hover:shadow-lg transition-all cursor-help" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
+                      <div className="p-5">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className={`p-2 ${stat.bgColor} rounded-lg`}>
+                            <Icon className={`h-5 w-5 ${stat.color}`} />
+                          </div>
+                          <>
+                            {stat.trend === 'up' && stat.percentChange !== 0 && <div className={`text-xs font-bold ${changeColor}`}>{changeIcon} {Math.abs(stat.percentChange).toFixed(1)}%</div>}
+                            {stat.trend === 'down' && stat.percentChange !== 0 && <div className={`text-xs font-bold ${changeColor}`}>{changeIcon} {Math.abs(stat.percentChange).toFixed(1)}%</div>}
+                            {stat.trend === 'up' && <TrendingUp className="h-4 w-4 text-green-500" />}
+                            {stat.trend === 'down' && <TrendingDown className="h-4 w-4 text-red-500" />}
+                          </>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 mb-2">
+                          <p className="text-xs font-bold text-slate-500 font-open-sans uppercase tracking-wide">{stat.title}</p>
+                        </div>
+
+                        <p className={`text-3xl font-black mt-2 mb-1 font-roboto ${stat.color}`}>{stat.value}</p>
+                        <p className="text-xs font-semibold text-slate-600 mb-3 font-open-sans">{stat.valueLabel}</p>
+                        
+                        <div className="border-t border-slate-100 pt-3 space-y-2">
+                          <p className="text-xs font-bold text-slate-600 font-open-sans leading-snug">{stat.benchmark}</p>
+                          {stat.percentChange !== 0 && stat.compareLabel && <p className={`text-xs font-bold ${changeColor}`}>{stat.compareLabel}</p>}
+                        </div>
+                      </div>
+                    </Card>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-56 p-3 bg-slate-900 border-slate-800 shadow-xl" sideOffset={8}>
+                    <p className="text-xs font-semibold text-white mb-2 pb-2 border-b border-slate-700/50">
+                      {stat.tooltipTitle}
+                    </p>
+                    <div className="space-y-2">
+                      {stat.tooltipData.map((data: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">{data.label}</span>
+                          <span className="text-slate-100 font-medium">{data.value}</span>
+                        </div>
+                      ))}
                     </div>
-                    <>
-                      {stat.trend === 'up' && stat.percentChange !== 0 && <div className={`text-xs font-bold ${changeColor}`}>{changeIcon} {Math.abs(stat.percentChange).toFixed(1)}%</div>}
-                      {stat.trend === 'down' && stat.percentChange !== 0 && <div className={`text-xs font-bold ${changeColor}`}>{changeIcon} {Math.abs(stat.percentChange).toFixed(1)}%</div>}
-                      {stat.trend === 'up' && <TrendingUp className="h-4 w-4 text-green-500" />}
-                      {stat.trend === 'down' && <TrendingDown className="h-4 w-4 text-red-500" />}
-                    </>
-                  </div>
-                  <p className="text-xs font-bold text-slate-500 font-open-sans uppercase tracking-wide">{stat.title}</p>
-                  <p className={`text-2xl font-black mt-1 font-roboto ${stat.color}`}>{stat.value}</p>
-                  <div className="flex justify-between items-end mt-2">
-                    <p className="text-xs font-bold text-slate-400 font-open-sans">{stat.benchmark}</p>
-                    {stat.percentChange !== 0 && <p className={`text-xs font-bold ${changeColor}`}>{stat.compareLabel}</p>}
-                  </div>
-                </div>
-              </Card>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             );
           })}
         </div>
@@ -265,12 +340,12 @@ function PerformanceTrends({ monthlyPerformance, yearlyPerformance, kpi, digital
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 font-source-sans">
       <div>
         <h2 className="text-2xl font-black text-[#1E293B] tracking-tight font-roboto">Performance Trends & Forecasting</h2>
-        <p className="text-sm font-semibold text-[#64748B] mt-1 font-open-sans">Year-on-Year and Month-on-Month analysis</p>
+        <p className="text-sm font-semibold text-[#64748B] mt-1 font-open-sans">Annual comparison and monthly progress</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bento-card border-none" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)', borderRadius: '12px' }}>
-          <h3 className="text-lg font-black text-[#1E293B] mb-4 font-roboto">Year-on-Year Trends</h3>
+          <h3 className="text-lg font-black text-[#1E293B] mb-4 font-roboto">Annual Performance Trends</h3>
           <div className="space-y-3">
             {yearlyPerformance?.slice(0, 3).map((year: any) => (
               <div key={year.year} className="p-4 bg-slate-50 rounded-lg border border-slate-100">
@@ -287,11 +362,11 @@ function PerformanceTrends({ monthlyPerformance, yearlyPerformance, kpi, digital
                     <p className="font-black text-[#1E293B]">{formatCurrency(year.totalCollected, true)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500 font-bold">Defaulters</p>
+                    <p className="text-slate-500 font-bold">Unpaid</p>
                     <p className="font-black text-red-500">{year.defaulterCount}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500 font-bold">TC Loss</p>
+                    <p className="text-slate-500 font-bold">Attrition Loss</p>
                     <p className="font-black text-orange-500">{formatCurrency(year.tcDropoutLoss, true)}</p>
                   </div>
                 </div>

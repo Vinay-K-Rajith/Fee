@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { useDashboard, formatCurrency, formatPercentage } from '@/hooks/use-api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DefaulterLocationMap } from '@/components/views/DefaulterLocationMap';
-import { Target, Wallet, AlertCircle, TrendingUp, TrendingDown, Sparkles, Lightbulb } from 'lucide-react';
+import { Target, Wallet, AlertCircle, TrendingUp, TrendingDown, Sparkles, Lightbulb, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function DashboardHome() {
   const { data: dashboard, isLoading, error } = useDashboard('2025-26');
@@ -43,31 +49,49 @@ export function DashboardHome() {
 
   const kpiCards = [
     {
-      title: 'Total Collection',
+      title: 'Total Revenue Collected',
       value: formatCurrency(kpi.totalFeeCollection, true),
       yoy: calculateYoy(kpi.totalFeeCollection, previousKpi?.totalFeeCollection),
+      trendLabel: 'Yearly Trend',
       benchmark: `${formatPercentage(kpi.collectionRate)} collection rate`,
       target: `Industry benchmark: ${benchmarks.collectionRateBenchmark}%`,
       status: kpi.collectionRate >= benchmarks.collectionRateBenchmark ? 'good' : 'alert',
       icon: Wallet,
+      tooltipTitle: 'Revenue Insights',
+      tooltipData: [
+        { label: 'Amount Collected', value: formatCurrency(kpi.totalFeeCollection) },
+        { label: 'Pending Dues', value: formatCurrency(Math.max(0, (kpi.totalFeeCollection / (kpi.collectionRate/100)) - kpi.totalFeeCollection)) }
+      ]
     },
     {
-      title: 'Active Defaulters',
+      title: 'Unpaid Accounts',
       value: kpi.activeDefaultersCount.toLocaleString('en-IN'),
       yoy: calculateYoy(kpi.activeDefaultersCount, previousKpi?.activeDefaultersCount),
+      trendLabel: 'Annual Change',
       benchmark: `${formatPercentage(kpi.defaulterRate)} default rate`,
       target: `Target: <${benchmarks.defaulterRateBenchmark}%`,
       status: kpi.defaulterRate <= benchmarks.defaulterRateBenchmark ? 'good' : 'alert',
       icon: AlertCircle,
+      tooltipTitle: 'Defaulter Breakdown',
+      tooltipData: [
+        { label: 'Total Enrolled', value: Math.round(kpi.activeDefaultersCount / (kpi.defaulterRate/100)).toLocaleString('en-IN') },
+        { label: 'Active Unpaid', value: kpi.activeDefaultersCount.toLocaleString('en-IN') }
+      ]
     },
     {
-      title: 'Digital Adoption',
+      title: 'Digital Payment Usage',
       value: `${kpi.digitalAdoption.toFixed(1)}%`,
       yoy: calculateYoy(kpi.digitalAdoption, previousKpi?.digitalAdoption),
-      benchmark: `of payments are digital`,
+      trendLabel: 'Annual Growth',
+      benchmark: `Digital share of payments`,
       target: `Target: ${benchmarks.digitalAdoptionTarget}%`,
       status: kpi.digitalAdoption >= benchmarks.digitalAdoptionTarget ? 'good' : 'alert',
       icon: TrendingUp,
+      tooltipTitle: 'Payment Methods',
+      tooltipData: [
+        { label: 'Digital', value: `${kpi.digitalAdoption.toFixed(1)}%` },
+        { label: 'Cash/Cheque', value: `${(100 - kpi.digitalAdoption).toFixed(1)}%` }
+      ]
     },
   ];
 
@@ -97,51 +121,72 @@ export function DashboardHome() {
         </div>
 
         {/* KEY PERFORMANCE INDICATORS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-          {kpiCards.map((card) => {
-            const Icon = card.icon;
-            const st = statusStyle(card.status);
+        <TooltipProvider>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+            {kpiCards.map((card) => {
+              const Icon = card.icon;
+              const st = statusStyle(card.status);
 
-            return (
-              <Card
-                key={card.title}
-                className={`border ${st.border} shadow-sm hover:shadow-md transition-all duration-200 bg-white relative overflow-hidden rounded-xl group`}
-              >
-                {/* 3px left accent stripe */}
-                <div className={`absolute top-0 left-0 h-full w-[3px] ${st.bar}`} />
+              return (
+                <Tooltip key={card.title} delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <Card
+                      className={`border ${st.border} shadow-sm hover:shadow-md transition-all duration-200 bg-white relative overflow-hidden rounded-xl group cursor-help`}
+                    >
+                      {/* 3px left accent stripe */}
+                      <div className={`absolute top-0 left-0 h-full w-[3px] ${st.bar}`} />
 
-                <div className="pl-8 pr-6 py-5">
-                  <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-slate-400 mb-3">
-                    {card.title}
-                  </p>
-                  <div className="flex items-end justify-between gap-2">
-                    <div>
-                      <p className="text-[2rem] font-bold leading-none text-slate-900 tabular-nums">
-                        {card.value}
-                      </p>
-                      {card.yoy !== null && card.yoy !== undefined && (
-                        <div className="mt-2 flex items-center gap-1.5">
-                          <span className={`text-[12px] font-medium flex items-center ${card.yoy >= 0 ? (card.title === 'Active Defaulters' ? 'text-rose-600' : 'text-emerald-600') : (card.title === 'Active Defaulters' ? 'text-emerald-600' : 'text-rose-600')}`}>
-                            {card.yoy >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                            {Math.abs(card.yoy).toFixed(1)}% YoY
-                          </span>
+                      <div className="pl-8 pr-6 py-5">
+                        <div className="flex justify-between items-center mb-3">
+                          <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-slate-400">
+                            {card.title}
+                          </p>
+                          <Info className="w-3.5 h-3.5 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                      )}
+                        <div className="flex items-end justify-between gap-2">
+                          <div>
+                            <p className="text-[2rem] font-bold leading-none text-slate-900 tabular-nums">
+                              {card.value}
+                            </p>
+                            {card.yoy !== null && card.yoy !== undefined && (
+                              <div className="mt-2 flex items-center gap-1.5">
+                                <span className={`text-[12px] font-medium flex items-center ${card.yoy >= 0 ? (card.title === 'Unpaid Accounts' ? 'text-rose-600' : 'text-emerald-600') : (card.title === 'Unpaid Accounts' ? 'text-emerald-600' : 'text-rose-600')}`}>
+                                  {card.yoy >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                                  {Math.abs(card.yoy).toFixed(1)}% {card.trendLabel}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className={`p-2.5 rounded-lg ${st.bg} border ${st.border} shrink-0 mb-0.5`}>
+                            <Icon className="w-5 h-5" style={{ color: st.color }} strokeWidth={1.8} />
+                          </div>
+                        </div>
+                        <div className="mt-3.5 flex items-center gap-2">
+                          <span className={`inline-block w-2 h-2 rounded-full ${st.bar}`} />
+                          <span className="text-[13px] text-slate-600 font-medium">{card.benchmark}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-1.5">{card.target}</p>
+                      </div>
+                    </Card>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-56 p-3 bg-slate-900 border-slate-800 shadow-xl" sideOffset={8}>
+                    <p className="text-xs font-semibold text-white mb-2 pb-2 border-b border-slate-700/50">
+                      {card.tooltipTitle}
+                    </p>
+                    <div className="space-y-2">
+                      {card.tooltipData.map((data, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">{data.label}</span>
+                          <span className="text-slate-100 font-medium">{data.value}</span>
+                        </div>
+                      ))}
                     </div>
-                    <div className={`p-2.5 rounded-lg ${st.bg} border ${st.border} shrink-0 mb-0.5`}>
-                      <Icon className="w-5 h-5" style={{ color: st.color }} strokeWidth={1.8} />
-                    </div>
-                  </div>
-                  <div className="mt-3.5 flex items-center gap-2">
-                    <span className={`inline-block w-2 h-2 rounded-full ${st.bar}`} />
-                    <span className="text-[13px] text-slate-600 font-medium">{card.benchmark}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1.5">{card.target}</p>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+        </TooltipProvider>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -159,16 +204,16 @@ export function DashboardHome() {
         </Card>
 
         {/* AI Insights Section - 40% */}
-        <Card className="bg-[#0F172A] border border-slate-800 p-0 rounded-xl lg:col-span-2 relative overflow-hidden flex flex-col">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(59,130,246,0.08)_0%,_transparent_60%)] pointer-events-none" />
+        <Card className="bg-white border border-slate-200 p-0 rounded-xl lg:col-span-2 relative overflow-hidden flex flex-col" style={{ boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.03)' }}>
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(16,185,129,0.05)_0%,_transparent_60%)] pointer-events-none" />
           
           <div className="p-6 flex flex-col h-full">
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-white flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-blue-400" />
+              <h3 className="text-[15px] font-semibold text-slate-900 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600" />
                 AI Insights
               </h3>
-              <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/20 text-[11px] font-medium px-2 py-0.5">
+              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-medium px-2 py-0.5">
                 FY 2025–26
               </Badge>
             </div>
@@ -184,19 +229,19 @@ export function DashboardHome() {
                   initial={{ opacity: 0, x: 16 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.45, delay: insight.delay, ease: 'easeOut' }}
-                  className="bg-white/5 border border-white/8 p-4 rounded-lg flex items-start gap-3 hover:bg-white/8 transition-colors"
+                  className="bg-slate-50 border border-slate-200 p-4 rounded-lg flex items-start gap-3 hover:bg-emerald-50 transition-colors"
                 >
-                  <Lightbulb className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                  <p className="text-[13px] text-slate-300 leading-relaxed">
+                  <Lightbulb className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="text-[13px] text-slate-700 leading-relaxed">
                     {insight.text}
                   </p>
                 </motion.div>
               ))}
             </div>
 
-            <div className="mt-5 pt-4 border-t border-white/8">
-              <p className="text-[11px] text-slate-500 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+            <div className="mt-5 pt-4 border-t border-slate-200">
+              <p className="text-[11px] text-slate-600 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
                 Insights derived from actual collection data
               </p>
             </div>
