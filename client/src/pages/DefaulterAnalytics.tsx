@@ -153,7 +153,7 @@ export function DefaulterAnalytics() {
                         <div className="flex items-center gap-1.5 text-xs">
                           <span className={`font-medium flex items-center ${s.yoy >= 0 ? (s.label.includes('Defaulter') ? 'text-rose-600' : 'text-emerald-600') : (s.label.includes('Defaulter') ? 'text-emerald-600' : 'text-rose-600')}`}>
                             {s.yoy >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                            {Math.abs(s.yoy).toFixed(1)}% Annual Growth
+                            {s.yoy >= 0 ? 'Up' : 'Down'} {Math.abs(s.yoy).toFixed(1)}% from last year
                           </span>
                         </div>
                       )}
@@ -181,10 +181,10 @@ export function DefaulterAnalytics() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Annual Growth Outstanding Balance */}
+        {/* Outstanding Balance Trend */}
         <Card className="bento-card">
           <div className="mb-5 border-b border-slate-100 pb-4">
-            <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Annual Growth Outstanding Balance</h3>
+            <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Outstanding Balance Trend</h3>
             <p className="text-xs text-slate-500">Cumulative unpaid balances per academic year. Benchmark: keep defaulter rate below {benchmarks.defaulterRateBenchmark}%.</p>
           </div>
           <div className="h-[280px]">

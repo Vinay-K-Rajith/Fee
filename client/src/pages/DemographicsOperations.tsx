@@ -63,7 +63,21 @@ export function DemographicsOperations() {
   const digitalAdoptionRate = totalTrans > 0 ? (digitalTrans / totalTrans) * 100 : 0;
   const totalAmount = paymentModeAnalysis.reduce((s: number, m: any) => s + m.totalAmount, 0);
   const avgTransaction = totalTrans > 0 ? totalAmount / totalTrans : 0;
-  const classWiseData = defaulterAnalysis.classWise;
+  
+  // Sort classes properly: NUR/KG first, then 1-12 with sections (A, B, etc)
+  const sortClassWise = (data: any[]) => {
+    const classOrder = ['NUR', 'KG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+    return [...data].sort((a, b) => {
+      const aPrefix = a.className.match(/^[A-Z]+|\d+/)?.[0] || '';
+      const bPrefix = b.className.match(/^[A-Z]+|\d+/)?.[0] || '';
+      const aIdx = classOrder.indexOf(aPrefix);
+      const bIdx = classOrder.indexOf(bPrefix);
+      if (aIdx !== bIdx) return aIdx - bIdx;
+      return a.className.localeCompare(b.className);
+    });
+  };
+  
+  const classWiseData = sortClassWise(defaulterAnalysis.classWise);
   const occupationPieData = defaulterAnalysis.occupationWise.slice(0, 6);
 
   // Radar: value in lakhs per payment mode (single metric, clean spider)
@@ -132,7 +146,7 @@ export function DemographicsOperations() {
             icon: <Wallet className="w-5 h-5" />,
             iconBg: 'bg-violet-50', iconColor: 'text-violet-500',
             accent: '#7C3AED',
-            yoy: previousKpi ? calculateYoy(avgTransaction, avgTransaction * (1 - (previousKpi.totalFeeCollection / kpi.totalFeeCollection))) : null,
+            yoy: previousKpi ? calculateYoy(avgTransaction, (previousKpi.totalFeeCollection || 0) / (Object.values(previousKpi.paymentModes || {}).reduce((a:any,b:any) => a+b, 0) || 1)) : null,
             tooltipTitle: 'Transaction Value',
             tooltipData: [
               { label: 'Avg Value', value: formatCurrency(avgTransaction) },
@@ -155,7 +169,7 @@ export function DemographicsOperations() {
                         <div className="flex items-center gap-1 text-[10px] mt-2">
                           <span className={`font-medium flex items-center ${s.yoy >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {s.yoy >= 0 ? <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
-                            {Math.abs(s.yoy).toFixed(1)}% Annual Growth
+                            {s.yoy >= 0 ? 'Up' : 'Down'} {Math.abs(s.yoy).toFixed(1)}% from last year
                           </span>
                         </div>
                       )}
@@ -325,15 +339,15 @@ export function DemographicsOperations() {
             <h3 className="text-[15px] font-semibold text-slate-800">Class-wise Outstanding Balances</h3>
             <p className="text-xs text-slate-400 mt-0.5">Unpaid balances (bars) and defaulter count (line) per class.</p>
           </div>
-          <div className="h-[300px]">
+          <div className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={classWiseData} margin={{ top: 20, right: 36, bottom: 28, left: 0 }}>
+              <ComposedChart data={classWiseData} margin={{ top: 20, right: 36, bottom: 60, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
-                <XAxis dataKey="className" tick={tickStyle} axisLine={false} tickLine={false} angle={-40} textAnchor="end" height={60} />
+                <XAxis dataKey="className" tick={{ fontSize: 10, fontWeight: 500, fill: '#64748B' }} axisLine={false} tickLine={false} angle={-45} textAnchor="end" height={80} interval={0} />
                 <YAxis yAxisId="amt" tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} width={60} />
                 <YAxis yAxisId="cnt" orientation="right" tick={tickStyle} axisLine={false} tickLine={false} width={28} />
                 <RechartsTooltip content={<SmartTooltip />} />
-                <Bar yAxisId="amt" dataKey="totalBalance" name="Outstanding Balance" fill={BRAND_INDIGO} radius={[4, 4, 0, 0]} barSize={16} fillOpacity={0.85} />
+                <Bar yAxisId="amt" dataKey="totalBalance" name="Outstanding Balance" fill={BRAND_INDIGO} radius={[4, 4, 0, 0]} barSize={14} fillOpacity={0.85} />
                 <Line yAxisId="cnt" type="monotone" dataKey="defaulterCount" name="# Defaulters" stroke={STATUS.danger} strokeWidth={2} dot={{ r: 3, fill: STATUS.danger }}>
                   <LabelList dataKey="defaulterCount" position="top" content={<CustomAreaLabel name="Defaulters" />} />
                 </Line>

@@ -399,7 +399,7 @@ function PerformanceTrends({ monthlyPerformance, yearlyPerformance, kpi, digital
           <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
             <p className="text-xs font-bold text-emerald-700 font-open-sans uppercase tracking-wide">Predictable Growth</p>
             <p className="text-2xl font-black text-emerald-600 mt-2 font-roboto">+12-15%</p>
-            <p className="text-xs font-bold text-emerald-600 mt-1 font-open-sans">Annual growth target</p>
+            <p className="text-xs font-bold text-emerald-600 mt-1 font-open-sans">vs. last year target</p>
           </div>
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-xs font-bold text-blue-700 font-open-sans uppercase tracking-wide">Q1-Q2 Collections</p>

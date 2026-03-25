@@ -99,7 +99,7 @@ export function ConcessionsLosses() {
             icon: <Percent className="w-5 h-5" />, 
             bg: 'bg-blue-50', 
             iconColor: 'text-blue-500',
-            yoy: calculateYoy(concessionAnalysis.concessionRate, previousKpi?.concessionRate),
+            yoy: previousKpi?.concessionRate ? (concessionAnalysis.concessionRate - previousKpi.concessionRate) : null,
             tooltipTitle: 'Concession Rate Impact',
             tooltipData: [
               { label: 'Current Rate', value: formatPercentage(concessionAnalysis.concessionRate) },
@@ -112,7 +112,7 @@ export function ConcessionsLosses() {
             icon: <FileText className="w-5 h-5" />, 
             bg: 'bg-emerald-50', 
             iconColor: 'text-emerald-500',
-            yoy: previousKpi && previousKpi.totalConcession ? calculateYoy(concessionAnalysis.avgConcessionPerStudent, (previousKpi.totalConcession / previousKpi.totalStudents)) : null,
+            yoy: calculateYoy(concessionAnalysis.avgConcessionPerStudent, previousKpi?.avgConcessionPerStudent),
             tooltipTitle: 'Per Student Average',
             tooltipData: [
               { label: 'Total Receiving', value: concessionAnalysis.studentsWithConcession },
@@ -131,8 +131,8 @@ export function ConcessionsLosses() {
                       {s.yoy !== null && s.yoy !== undefined && (
                         <div className="flex items-center gap-1.5 text-xs mt-2">
                           <span className={`font-medium flex items-center ${s.yoy >= 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                            {s.yoy >= 0 ? <TrendingDown className="w-3 h-3 mr-1" /> : <TrendingUp className="w-3 h-3 mr-1" />}
-                            {Math.abs(s.yoy).toFixed(1)}% Annual Growth
+                            {s.yoy >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                            {s.yoy >= 0 ? 'Up' : 'Down'} {Math.abs(s.yoy).toFixed(1)}% from last year
                           </span>
                         </div>
                       )}
@@ -160,10 +160,10 @@ export function ConcessionsLosses() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Annual Growth Concessions — Actual vs Projected */}
+        {/* Concessions Trend — Actual vs Projected */}
         <Card className="bento-card">
           <div className="mb-5 border-b border-slate-100 pb-4">
-            <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Annual Growth Concessions</h3>
+            <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Concessions Trend</h3>
             <p className="text-xs text-slate-500">
               Solid = actual data · Dashed amber = linear regression projection (not real data).
               Benchmark: cap concessions at {benchmarks.concessionRateBenchmark}% of total collection.
