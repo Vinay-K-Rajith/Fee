@@ -136,6 +136,21 @@ export interface ConcessionAnalysis {
   avgConcessionPerStudent: number;
 }
 
+export interface MonthlyLoss {
+  month: string;
+  tcLoss: number;
+  dropoutLoss: number;
+  totalLoss: number;
+}
+
+export interface LossAnalysis {
+  totalLoss: number;
+  lossByTC: number;
+  lossByDropout: number;
+  totalPotentialDroppedRevenue: number;
+  monthlyLoss: MonthlyLoss[];
+}
+
 // Payment Mode Analysis
 export interface PaymentModeData {
   paymentMode: string;
@@ -170,10 +185,32 @@ export interface StudentSummary {
 export interface ExtendedAnalysis {
   outstandingPercent: number;
   totalLateFee: number;
+  lateFeeCount: number;
+  maxLateFee: number;
+  avgLateFee: number;
   monthlyLateFees: { month: string; amount: number }[];
   chequeBounces: number;
   reAdmissions: number;
-  delayTimeBuckets: { id: string; label: string; count: number }[];
+  delayTimeBuckets: { 
+    id: string; 
+    label: string; 
+    count: number;
+    breakdown?: { mode: string; count: number }[];
+  }[];
+  timelineStats?: {
+    installment: string;
+    medianPaymentDate: string;
+    lastPaymentDate: string;
+    paidBefore15th: number;
+    paidAfter15th: number;
+  }[];
+  headwiseFees?: {
+    tuition: number;
+    bus: number;
+    admission: number;
+    others: number;
+  };
+  busUsersCount?: number;
 }
 
 // Full Dashboard Data
@@ -186,6 +223,7 @@ export interface DashboardData {
   yearlyPerformance: YearlyPerformance[];
   defaulterAnalysis: DefaulterAnalysis;
   concessionAnalysis: ConcessionAnalysis;
+  lossAnalysis: LossAnalysis;
   paymentModeAnalysis: PaymentModeData[];
   admissionTypeAnalysis: AdmissionTypeData[];
   extendedAnalysis: ExtendedAnalysis;
