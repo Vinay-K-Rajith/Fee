@@ -242,6 +242,7 @@ export function registerRoutes(
         yearlyPerformance: dataLoader.getYearlyPerformance(), // Kept unfiltered since we want to see YoY usually
         defaulterAnalysis: dataLoader.getDefaulterAnalysis(yearFilter),
         concessionAnalysis: dataLoader.getConcessionAnalysis(yearFilter),
+        lossAnalysis: dataLoader.getLossAnalysis(yearFilter),
         paymentModeAnalysis: dataLoader.getPaymentModeAnalysis(yearFilter),
         admissionTypeAnalysis: dataLoader.getAdmissionTypeAnalysis(yearFilter),
         extendedAnalysis: dataLoader.getExtendedAnalysis(yearFilter),
@@ -250,6 +251,89 @@ export function registerRoutes(
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       res.status(500).json({ error: "Failed to fetch dashboard data" });
+    }
+  });
+
+  // ========================================
+  // AI Dashboard Insights Endpoint
+  // ========================================
+  // Cache insights so we don't hit Gemini on every page load
+  let insightsCache: { ts: number; data: any } | null = null;
+  const INSIGHTS_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+  app.get("/api/dashboard-insights", async (_req, res) => {
+    try {
+      if (insightsCache && Date.now() - insightsCache.ts < INSIGHTS_TTL_MS) {
+        return res.json(insightsCache.data);
+      }
+
+      // Build a tight data snapshot covering all 3 years for comparison
+      const years = ['2023-24', '2024-25', '2025-26'];
+      const snapshot = years.map(y => {
+        const kpi = dataLoader.getKPISummary(y);
+        const ext = dataLoader.getExtendedAnalysis(y);
+        const con = dataLoader.getConcessionAnalysis(y);
+        const def = dataLoader.getDefaulterAnalysis(y);
+        const loss = dataLoader.getLossAnalysis(y);
+        return {
+          year: y,
+          totalExpected: kpi.totalExpected,
+          totalCollected: kpi.totalFeeCollection,
+          collectionRate: kpi.collectionRate,
+          studentCount: kpi.totalStudents ?? null,
+          defaulterCount: kpi.activeDefaultersCount,
+          defaulterRate: kpi.defaulterRate,
+          concessionTotal: con.totalConcession,
+          concessionRate: con.concessionRate,
+          studentsWithConcession: con.studentsWithConcession,
+          lossTotal: loss?.totalLoss ?? 0,
+          lossByTC: loss?.lossByTC ?? 0,
+          lossByDropout: loss?.lossByDropout ?? 0,
+          digitalAdoption: kpi.digitalAdoption,
+          outstanding: ext?.outstandingPercent ?? null,
+          lateFeeTotal: ext?.totalLateFee ?? 0,
+        };
+      });
+
+      const prompt = `You are a school fee analytics expert. Below is 3 years of fee data (2023-24, 2024-25, 2025-26):
+
+${JSON.stringify(snapshot, null, 2)}
+
+Analyze year-on-year collection performance changes. Identify the SPECIFIC REASONS why collection went up or down between years. Consider:
+- Enrollment size changes (more/fewer students = more/less revenue potential)
+- Defaulter rate rise or fall
+- Concession policy impact (higher concessions = less collected)
+- Revenue loss from TC students and dropouts
+- Digital payment adoption shifts
+- Outstanding dues trends
+
+Return EXACTLY 4 short, sharp, data-backed insights as a JSON array. Format:
+[
+  { "icon": "trending_up|trending_down|alert|info", "text": "...", "highlight": "key metric" }
+]
+Rules:
+- Each insight must cite exact numbers/percentages
+- Focus on WHY collection changed, not just that it changed
+- Be specific about which year drove the change
+- Keep each text under 120 characters
+- Return only valid JSON, no markdown`;
+
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+      const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
+      const result = await model.generateContent(prompt);
+      const raw = result.response.text().trim();
+
+      // Extract JSON safely
+      const jsonMatch = raw.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error("No JSON array in Gemini response");
+      const insights = JSON.parse(jsonMatch[0]);
+
+      insightsCache = { ts: Date.now(), data: { insights, generatedAt: new Date().toISOString() } };
+      res.json(insightsCache.data);
+    } catch (error) {
+      console.error("[dashboard-insights] Error:", error);
+      res.status(500).json({ error: "Failed to generate insights" });
     }
   });
 

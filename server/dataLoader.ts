@@ -41,6 +41,7 @@ export interface StudentSummaryRecord {
   paidAmount: number;
   balanceAmount: number;
   hasDefaulterHistory?: boolean;
+  currentStatus?: string;
 }
 
 export interface CollectionRecord {
@@ -64,6 +65,7 @@ export interface CollectionRecord {
   totalConcession: number;
   defaulterTotal: number;
   lateFee: number;
+  currentStatus: string;
   [key: string]: any; // For year-specific fields
 }
 
@@ -85,6 +87,15 @@ class DataLoader {
     if (this.isLoaded) return;
 
     try {
+      const getStatusKey = (data: any[]) => {
+        if (!data || data.length === 0) return '__EMPTY_25';
+        const headerMap = data[0];
+        const key = Object.keys(headerMap).find(k => 
+          String(headerMap[k]).trim().toLowerCase() === 'current status'
+        );
+        return key || '__EMPTY_25';
+      };
+
       // Load 2023-24 Collection (Detailed Structure)
       const path2023 = path.join(process.cwd(), 'StudentCollection23.xlsx');
       if (fs.existsSync(path2023)) {
@@ -92,6 +103,7 @@ class DataLoader {
         const workbook2023 = XLSX.read(buffer2023);
         const sheet2023 = workbook2023.Sheets['2023-24'];
         const rawData2023: any[] = XLSX.utils.sheet_to_json(sheet2023, { defval: 0 });
+        const statusKey23 = getStatusKey(rawData2023);
         
         // Skip header rows and map data
         this.collection2023Data = rawData2023.slice(1).map((row: any) => {
@@ -114,6 +126,9 @@ class DataLoader {
           const totalConcession = row['__EMPTY_31'] || 0;
           const defaulterTotal = row['__EMPTY_38'] || 0;
           const lateFee = row['__EMPTY_13'] || 0;
+          
+          let currentStatusRaw = row[statusKey23];
+          let currentStatus = (!currentStatusRaw || String(currentStatusRaw).trim() === '' || currentStatusRaw === 0 || currentStatusRaw === '0') ? 'Active' : String(currentStatusRaw).trim();
 
           return {
             year: '2023-24',
@@ -136,6 +151,7 @@ class DataLoader {
             totalConcession,
             defaulterTotal,
             lateFee,
+            currentStatus,
             tuitionFees: row['__EMPTY_15'] || 0,
             gamesSportsActivites: row['__EMPTY_16'] || 0,
             developmentFund: row['__EMPTY_17'] || 0,
@@ -144,6 +160,7 @@ class DataLoader {
             labFees: row['__EMPTY_20'] || 0,
             admissionFee: row['__EMPTY_21'] || 0,
             smartClassFees: row['__EMPTY_22'] || 0,
+            busFee: 0,
           };
         }).filter(r => r.admNo && r.installment && r.installment !== 'Installment');
         
@@ -157,32 +174,40 @@ class DataLoader {
         const workbook2024 = XLSX.read(buffer2024);
         const sheet2024 = workbook2024.Sheets['2024-25'];
         const rawData2024: any[] = XLSX.utils.sheet_to_json(sheet2024, { defval: 0 });
+        const statusKey24 = getStatusKey(rawData2024);
         
-        this.collection2024Data = rawData2024.slice(1).map((row: any) => ({
-          year: '2024-25',
-          receiptDate: row['Student Details'],
-          receiptNo: row['__EMPTY'],
-          admNo: row['__EMPTY_1'],
-          studentName: row['__EMPTY_2'],
-          fatherOccupation: row['__EMPTY_3'],
-          locality: row['__EMPTY_4'],
-          classSection: row['__EMPTY_5'],
-          installment: row['Installment Details'],
-          totalStructuredAmount: row['__EMPTY_6'] || 0,
-          concessionPercent: row['__EMPTY_7'] || 0,
-          concessionType: row['__EMPTY_8'] || 'NA',
-          totalPayableAmount: row['__EMPTY_9'] || 0,
-          dueDate: row['__EMPTY_10'],
-          receiptMode: row['Collection Details'],
-          admissionType: row['__EMPTY_11'],
-          totalPaid: row['__EMPTY_20'] || 0,
-          totalConcession: row['__EMPTY_21'] || 0,
-          defaulterTotal: row['__EMPTY_23'] || 0,
-          lateFee: row['__EMPTY_14'] || 0,
-          schoolFees: row['__EMPTY_18'] || 0,
-          admissionFee: row['__EMPTY_19'] || 0,
-          discountAmount: row['__EMPTY_12'] || 0,
-        })).filter(r => r.admNo && r.installment && r.installment !== 'Installment');
+        this.collection2024Data = rawData2024.slice(1).map((row: any) => {
+          let currentStatusRaw = row[statusKey24];
+          let currentStatus = (!currentStatusRaw || String(currentStatusRaw).trim() === '' || currentStatusRaw === 0 || currentStatusRaw === '0') ? 'Active' : String(currentStatusRaw).trim();
+          return {
+            year: '2024-25',
+            receiptDate: row['Student Details'],
+            receiptNo: row['__EMPTY'],
+            admNo: row['__EMPTY_1'],
+            studentName: row['__EMPTY_2'],
+            fatherOccupation: row['__EMPTY_3'],
+            locality: row['__EMPTY_4'],
+            classSection: row['__EMPTY_5'],
+            installment: row['Installment Details'],
+            totalStructuredAmount: row['__EMPTY_6'] || 0,
+            concessionPercent: row['__EMPTY_7'] || 0,
+            concessionType: row['__EMPTY_8'] || 'NA',
+            totalPayableAmount: row['__EMPTY_9'] || 0,
+            dueDate: row['__EMPTY_10'],
+            receiptMode: row['Collection Details'],
+            admissionType: row['__EMPTY_11'],
+            totalPaid: row['__EMPTY_20'] || 0,
+            totalConcession: row['__EMPTY_21'] || 0,
+            defaulterTotal: row['__EMPTY_23'] || 0,
+            lateFee: row['__EMPTY_14'] || 0,
+            currentStatus,
+            schoolFees: row['__EMPTY_18'] || 0,
+            admissionFee: row['__EMPTY_19'] || 0,
+            discountAmount: row['__EMPTY_12'] || 0,
+            tuitionFees: row['__EMPTY_18'] || 0,
+            busFee: 0,
+          };
+        }).filter(r => r.admNo && r.installment && r.installment !== 'Installment');
         
         console.log(`Loaded ${this.collection2024Data.length} records from 2024-25`);
       }
@@ -194,34 +219,42 @@ class DataLoader {
         const workbook2025 = XLSX.read(buffer2025);
         const sheet2025 = workbook2025.Sheets['2025-26'];
         const rawData2025: any[] = XLSX.utils.sheet_to_json(sheet2025, { defval: 0 });
+        const statusKey25 = getStatusKey(rawData2025);
         
-        this.collection2025Data = rawData2025.slice(1).map((row: any) => ({
-          year: '2025-26',
-          receiptDate: row['Student Details'],
-          receiptNo: row['__EMPTY'],
-          admNo: row['__EMPTY_1'],
-          studentName: row['__EMPTY_2'],
-          fatherOccupation: row['__EMPTY_3'],
-          locality: row['__EMPTY_4'],
-          classSection: row['__EMPTY_5'],
-          installment: row['Installment Details'],
-          totalStructuredAmount: row['__EMPTY_6'] || 0,
-          concessionPercent: row['__EMPTY_7'] || 0,
-          concessionType: row['__EMPTY_8'] || 'NA',
-          totalPayableAmount: row['__EMPTY_9'] || 0,
-          dueDate: row['__EMPTY_10'],
-          receiptMode: row['Collection Details'],
-          admissionType: row['__EMPTY_11'],
-          totalPaid: row['__EMPTY_20'] || 0,
-          totalConcession: row['__EMPTY_22'] || 0,
-          defaulterTotal: row['__EMPTY_24'] || 0,
-          lateFee: row['__EMPTY_14'] || 0,
-          chequeBounceAmount: row['__EMPTY_13'] || 0,
-          schoolFees: row['__EMPTY_18'] || 0,
-          admissionFee: row['__EMPTY_19'] || 0,
-          busFee: row['__EMPTY_16'] || 0,
-          discountAmount: row['__EMPTY_12'] || 0,
-        })).filter(r => r.admNo && r.installment && r.installment !== 'Installment');
+        this.collection2025Data = rawData2025.slice(1).map((row: any) => {
+          let currentStatusRaw = row[statusKey25];
+          let currentStatus = (!currentStatusRaw || String(currentStatusRaw).trim() === '' || currentStatusRaw === 0 || currentStatusRaw === '0') ? 'Active' : String(currentStatusRaw).trim();
+          return {
+            year: '2025-26',
+            receiptDate: row['Student Details'],
+            receiptNo: row['__EMPTY'],
+            admNo: row['__EMPTY_1'],
+            studentName: row['__EMPTY_2'],
+            fatherOccupation: row['__EMPTY_3'],
+            locality: row['__EMPTY_4'],
+            classSection: row['__EMPTY_5'],
+            installment: row['Installment Details'],
+            totalStructuredAmount: row['__EMPTY_6'] || 0,
+            concessionPercent: row['__EMPTY_7'] || 0,
+            concessionType: row['__EMPTY_8'] || 'NA',
+            totalPayableAmount: row['__EMPTY_9'] || 0,
+            dueDate: row['__EMPTY_10'],
+            receiptMode: row['Collection Details'],
+            admissionType: row['__EMPTY_11'],
+            totalPaid: row['__EMPTY_20'] || 0,
+            totalConcession: row['__EMPTY_22'] || 0,
+            defaulterTotal: row['__EMPTY_24'] || 0,
+            lateFee: row['__EMPTY_14'] || 0,
+            currentStatus,
+            chequeBounceAmount: row['__EMPTY_13'] || 0,
+            schoolFees: row['__EMPTY_18'] || 0,
+            admissionFee: row['__EMPTY_19'] || 0,
+            discountAmount: row['__EMPTY_12'] || 0,
+            tuitionFees: row['__EMPTY_18'] || 0,
+            busFee: row['__EMPTY_16'] || 0,
+            defaulterBusFee: row['Defaulters Details'] || 0,
+          };
+        }).filter(r => r.admNo && r.installment && r.installment !== 'Installment');
         
         console.log(`Loaded ${this.collection2025Data.length} records from 2025-26`);
       }
@@ -247,6 +280,7 @@ class DataLoader {
             paidAmount: record.totalPaid || 0,
             balanceAmount: record.defaulterTotal || 0,
             hasDefaulterHistory: isLatePayment(record.receiptDate, record.dueDate),
+            currentStatus: record.currentStatus,
           });
         } else {
           // Aggregate data for the same student
@@ -255,6 +289,7 @@ class DataLoader {
           existing.paidAmount += record.totalPaid || 0;
           existing.balanceAmount += record.defaulterTotal || 0;
           existing.hasDefaulterHistory = existing.hasDefaulterHistory || isLatePayment(record.receiptDate, record.dueDate);
+          if (record.currentStatus !== 'Active') existing.currentStatus = record.currentStatus;
         }
       });
       
@@ -320,14 +355,16 @@ class DataLoader {
           conAmount: record.totalConcession || 0,
           paidAmount: record.totalPaid || 0,
           balanceAmount: record.defaulterTotal || 0,
-            hasDefaulterHistory: isLatePayment(record.receiptDate, record.dueDate),
+          hasDefaulterHistory: isLatePayment(record.receiptDate, record.dueDate),
+          currentStatus: record.currentStatus,
         });
       } else {
         existing.dueAmount += record.totalStructuredAmount || 0;
         existing.conAmount += record.totalConcession || 0;
         existing.paidAmount += record.totalPaid || 0;
         existing.balanceAmount += record.defaulterTotal || 0;
-          existing.hasDefaulterHistory = existing.hasDefaulterHistory || isLatePayment(record.receiptDate, record.dueDate);
+        existing.hasDefaulterHistory = existing.hasDefaulterHistory || isLatePayment(record.receiptDate, record.dueDate);
+        if (record.currentStatus !== 'Active') existing.currentStatus = record.currentStatus;
       }
     });
     
@@ -1042,21 +1079,242 @@ class DataLoader {
     });
     const reAdmissions = reAdmissionsSet.size; 
 
-    // Mock Delay Time Period analysis
+    // Payment Breakdown for Mock Delay Time Period analysis (preserving counts but breaking down by mode)
+    const paymentModeCounts: Record<string, number> = {};
+    let totalPaidTrans = 0;
+    allCollections.forEach(r => {
+       if(r.totalPaid > 0) {
+           const mode = r.receiptMode || 'Unknown';
+           paymentModeCounts[mode] = (paymentModeCounts[mode] || 0) + 1;
+           totalPaidTrans++;
+       }
+    });
+
+    const createBreakdown = (bucketTotal: number) => {
+        const breakdown: any[] = [];
+        let remaining = bucketTotal;
+        Object.entries(paymentModeCounts).forEach(([mode, count], idx, arr) => {
+            if (idx === arr.length - 1) {
+                 breakdown.push({ mode, count: remaining });
+            } else {
+                 const part = Math.round(bucketTotal * (count / (totalPaidTrans || 1)));
+                 breakdown.push({ mode, count: part });
+                 remaining -= part;
+            }
+        });
+        return breakdown.filter((b: any) => b.count > 0).sort((a: any, b: any) => b.count - a.count);
+    };
+
+    const bucketC1 = Math.floor(allCollections.length * 0.45);
+    const bucketC2 = Math.floor(allCollections.length * 0.3);
+    const bucketC3 = Math.floor(allCollections.length * 0.15);
+    const bucketC4 = Math.floor(allCollections.length * 0.1);
+
     const delayTimeBuckets = [
-      { id: '1_week', label: '< 1 Week', count: Math.floor(allCollections.length * 0.45) },
-      { id: '2_weeks', label: '1 - 2 Weeks', count: Math.floor(allCollections.length * 0.3) },
-      { id: '1_month', label: '2 - 4 Weeks', count: Math.floor(allCollections.length * 0.15) },
-      { id: 'more_than_1_month', label: '> 1 Month', count: Math.floor(allCollections.length * 0.1) }
+      { id: '1_week', label: '< 1 Week', count: bucketC1, breakdown: createBreakdown(bucketC1) },
+      { id: '2_weeks', label: '1 - 2 Weeks', count: bucketC2, breakdown: createBreakdown(bucketC2) },
+      { id: '1_month', label: '2 - 4 Weeks', count: bucketC3, breakdown: createBreakdown(bucketC3) },
+      { id: 'more_than_1_month', label: '> 1 Month', count: bucketC4, breakdown: createBreakdown(bucketC4) }
     ];
+
+    // Timelines per Installment
+    const paidRecords = allCollections.filter(r => r.totalPaid > 0 && r.receiptDate && r.installment);
+    const getTs = (d: any) => {
+        let n = parseExcelOrDateStr(d);
+        return n > 0 ? n : 0;
+    };
+    
+    const installmentGroups = new Map<string, any[]>();
+    paidRecords.forEach(r => {
+        const inst = String(r.installment).toUpperCase().trim();
+        if (!inst) return;
+        if (!installmentGroups.has(inst)) installmentGroups.set(inst, []);
+        installmentGroups.get(inst)!.push(r);
+    });
+
+    // To compute 15th of the month deadline, we need to know the base year roughly.
+    // If we assume a generic date, it's easier to just compare day of the month if year logic is tricky.
+    // But since the receipt date has a year, let's use the receipt date's year but the installment's month.
+    // Wait, the deadline is ALWAYS the 15th of the installment month!
+    const monthNameToNumInst: Record<string, number> = {
+      'APR': 3, 'MAY': 4, 'JUN': 5, 'JUL': 6, 'AUG': 7, 
+      'SEP': 8, 'OCT': 9, 'NOV': 10, 'DEC': 11, 'JAN': 0, 'FEB': 1, 'MAR': 2
+    };
+
+    const timelineStats: any[] = [];
+    const instOrder = ['APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR'];
+    
+    instOrder.forEach(inst => {
+        const records = installmentGroups.get(inst) || [];
+        if (records.length === 0) return;
+
+        let before15th = 0;
+        let after15th = 0;
+        const timestamps: number[] = [];
+
+        records.forEach(r => {
+            const ts = getTs(r.receiptDate);
+            if (ts > 0) {
+                timestamps.push(ts);
+                const d = new Date(ts);
+                // Check if they paid before the 15th of the installment month for this specific due date.
+                // It is simpler: did they pay on or before the 15th day of *any* month for this installment?
+                // Actually, due date is always 15th of the specific installment month.
+                // Let's assume the due date year is the receipt year (or previous year if they paid really late).
+                const targetMonth = monthNameToNumInst[inst];
+                let targetYear = d.getFullYear();
+                
+                // standardizing deadline
+                let isLate = false;
+                if (d.getMonth() === targetMonth) {
+                    if (d.getDate() > 15) isLate = true;
+                } else {
+                    // if paid in a later month, it's late.
+                    // month logic: APR is 3 ... MAR is 2.
+                    // wrap around logic
+                    const orderValue = (m: number) => m >= 3 ? m - 3 : m + 9;
+                    if (orderValue(d.getMonth()) > orderValue(targetMonth)) {
+                        isLate = true;
+                    }
+                }
+
+                if (!isLate) before15th += r.totalPaid;
+                else after15th += r.totalPaid;
+            }
+        });
+
+        timestamps.sort((a,b) => a - b);
+        const medianTs = timestamps.length > 0 ? timestamps[Math.floor(timestamps.length / 2)] : 0;
+        const lastPaidTs = timestamps.length > 0 ? timestamps[timestamps.length - 1] : 0;
+
+        timelineStats.push({
+            installment: inst,
+            medianPaymentDate: medianTs > 0 ? new Date(medianTs).toLocaleDateString() : 'N/A',
+            lastPaymentDate: lastPaidTs > 0 ? new Date(lastPaidTs).toLocaleDateString() : 'N/A',
+            paidBefore15th: before15th,
+            paidAfter15th: after15th
+        });
+    });
+
+    // Headwise Fees Stats
+    const headwiseFees = {
+       tuition: 0,
+       bus: 0,
+       admission: 0,
+       others: 0
+    };
+    let totalSchoolFeesCollected = 0;
+    allCollections.forEach(r => {
+        headwiseFees.tuition += Number(r.tuitionFees || 0);
+        headwiseFees.bus += Number(r.busFee || 0);
+        headwiseFees.admission += Number(r.admissionFee || 0);
+        headwiseFees.others += Number(r.gamesSportsActivites || 0) + Number(r.developmentFund || 0) + Number(r.computerFees || 0) + Number(r.annualFees || 0) + Number(r.labFees || 0) + Number(r.smartClassFees || 0);
+        totalSchoolFeesCollected += Number(r.schoolFees || 0);
+    });
+    // Fallback if tuition is missing but school fees exist
+    if (headwiseFees.tuition === 0 && totalSchoolFeesCollected > 0) {
+        headwiseFees.tuition = totalSchoolFeesCollected;
+    }
+
+    // Count bus users (students who paid > 0 for bus fee or defaulted > 0 for bus)
+    const uniqueBusUsers = new Set();
+    allCollections.forEach(r => {
+        if (Number(r.busFee || 0) > 0 || Number((r as any).defaulterBusFee || 0) > 0) {
+            uniqueBusUsers.add(String(r.admNo));
+        }
+    });
+    const busUsersCount = uniqueBusUsers.size;
+
+    // Late Fee Logic Stats
+    let totalLateFeeAmount = 0;
+    let lateFeeCount = 0;
+    let maxLateFee = 0;
+    allCollections.forEach(r => {
+        const lf = Number(r.lateFee || 0);
+        if (lf > 0) {
+            totalLateFeeAmount += lf;
+            lateFeeCount++;
+            if (lf > maxLateFee) maxLateFee = lf;
+        }
+    });
 
     return {
       outstandingPercent,
-      totalLateFee,
+      totalLateFee: totalLateFeeAmount,
+      lateFeeCount,
+      maxLateFee,
+      avgLateFee: lateFeeCount > 0 ? totalLateFeeAmount / lateFeeCount : 0,
       monthlyLateFees,
       chequeBounces,
       reAdmissions,
       delayTimeBuckets,
+      timelineStats,
+      headwiseFees,
+      busUsersCount
+    };
+  }
+
+  // ========================================
+  // Loss & Dropout Analysis
+  // ========================================
+
+  getLossAnalysis(yearFilter?: string) {
+    const allCollections = this.getFilteredCollections(yearFilter);
+    const students = this.getFilteredStudentSummary(yearFilter);
+
+    let lossByTC = 0;
+    let lossByDropout = 0;
+    let totalPotentialTC = 0;
+    let totalPotentialDropout = 0;
+
+    const monthlyLossMap = new Map<string, { tcLoss: number; dropoutLoss: number }>();
+    const monthOrder = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+    monthOrder.forEach(m => monthlyLossMap.set(m, { tcLoss: 0, dropoutLoss: 0 }));
+
+    const monthMap = {
+      'APR': 'Apr', 'MAY': 'May', 'JUN': 'Jun', 'JUL': 'Jul',
+      'AUG': 'Aug', 'SEP': 'Sep', 'OCT': 'Oct', 'NOV': 'Nov',
+      'DEC': 'Dec', 'JAN': 'Jan', 'FEB': 'Feb', 'MAR': 'Mar'
+    };
+
+    students.forEach(student => {
+       const status = student.currentStatus;
+       if (status === 'TC' || status === 'Dropout') {
+           const stRecords = allCollections.filter(r => String(r.admNo) === student.admissionNo);
+           
+           stRecords.forEach(r => {
+               let unpaid = r.defaulterTotal;
+               if (unpaid <= 0) unpaid = Math.max(0, r.totalStructuredAmount - r.totalConcession - r.totalPaid);
+
+               if (unpaid > 0) {
+                   if (status === 'TC') lossByTC += unpaid;
+                   if (status === 'Dropout') lossByDropout += unpaid;
+
+                   const monthKey = r.installment?.toUpperCase();
+                   const month = monthMap[monthKey as keyof typeof monthMap];
+                   if (month && monthlyLossMap.has(month)) {
+                       if (status === 'TC') monthlyLossMap.get(month)!.tcLoss += unpaid;
+                       if (status === 'Dropout') monthlyLossMap.get(month)!.dropoutLoss += unpaid;
+                   }
+               }
+               
+               if (status === 'TC') totalPotentialTC += r.totalStructuredAmount;
+               if (status === 'Dropout') totalPotentialDropout += r.totalStructuredAmount;
+           });
+       }
+    });
+
+    return {
+       totalLoss: lossByTC + lossByDropout,
+       lossByTC,
+       lossByDropout,
+       totalPotentialDroppedRevenue: totalPotentialTC + totalPotentialDropout,
+       monthlyLoss: Array.from(monthlyLossMap.entries()).map(([month, data]) => ({
+           month,
+           tcLoss: data.tcLoss,
+           dropoutLoss: data.dropoutLoss,
+           totalLoss: data.tcLoss + data.dropoutLoss
+       }))
     };
   }
 }

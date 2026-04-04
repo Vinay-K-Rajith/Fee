@@ -4,7 +4,8 @@ import {
   Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, ComposedChart, PieChart, Pie, Cell,
   BarChart, Line, LabelList,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  Legend
 } from 'recharts';
 import { useDashboard, formatCurrency, formatPercentage } from '@/hooks/use-api';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -85,6 +86,24 @@ export function DemographicsOperations() {
     mode: m.paymentMode === 'Bank Transfer' ? 'Bank Tfr' : m.paymentMode,
     'Collection (₹L)': parseFloat((m.totalAmount / 100000).toFixed(2)),
   }));
+
+  const flattenedDelayBuckets = dashboard.extendedAnalysis.delayTimeBuckets.map(bucket => {
+      const obj: any = { label: bucket.label, Total: bucket.count };
+      if (bucket.breakdown) {
+         bucket.breakdown.forEach(b => {
+             obj[b.mode] = b.count;
+         });
+      }
+      return obj;
+  });
+
+  const umSet = new Set<string>();
+  dashboard.extendedAnalysis.delayTimeBuckets.forEach(b => {
+     if(b.breakdown) {
+         b.breakdown.forEach(br => umSet.add(br.mode));
+       }
+  });
+  const uniqueModes = Array.from(umSet);
 
   return (
     <div className="space-y-7 animate-in fade-in duration-500 pb-12">
@@ -356,7 +375,7 @@ export function DemographicsOperations() {
           </div>
           {/* Legend & Stats */}
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-            <div className="flex items-center gap-5">
+                    <div className="flex items-center gap-5">
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm" style={{ background: BRAND_INDIGO }} /><span className="text-[9px] text-slate-500">Outstanding Balance</span></div>
               <div className="flex items-center gap-1.5"><div className="w-5 h-0.5" style={{ background: STATUS.danger }} /><span className="text-[9px] text-slate-500"># Defaulters</span></div>
             </div>
@@ -389,16 +408,49 @@ export function DemographicsOperations() {
           </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dashboard.extendedAnalysis.delayTimeBuckets} margin={{ top: 20, right: 10, bottom: 10, left: 0 }}>
+              <BarChart data={flattenedDelayBuckets} margin={{ top: 30, right: 10, bottom: 10, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
                 <XAxis dataKey="label" tick={tickStyle} axisLine={false} tickLine={false} />
                 <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
-                <RechartsTooltip contentStyle={WHITE_TIP} />
-                <Bar dataKey="count" name="Transactions" radius={[7, 7, 0, 0]} barSize={40} label={<CustomBarLabel name="Transactions" />}>
-                  {dashboard.extendedAnalysis.delayTimeBuckets.map((_: any, i: number) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Bar>
+                <RechartsTooltip 
+                  content={({ active, payload, label }: any) => {
+                    if (active && payload && payload.length) {
+                      const total = payload[0].payload.Total || 1;
+                      return (
+                        <div className="bg-slate-900 border border-slate-800 rounded-lg shadow-xl p-3 text-sm text-slate-100">
+                          <p className="font-semibold border-b border-slate-700 pb-2 mb-2">{label} <span className="text-slate-400 font-normal ml-2">(Total: {payload[0].payload.Total})</span></p>
+                          <div className="space-y-1.5">
+                            {payload.map((entry: any, index: number) => {
+                              const percent = ((entry.value / total) * 100).toFixed(1);
+                              return (
+                                <div key={index} className="flex justify-between items-center gap-6">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2.5 h-2.5 rounded-sm" style={{ background: entry.color }} />
+                                    <span className="text-slate-300">{entry.name}</span>
+                                  </div>
+                                  <div className="font-medium text-right flex items-center gap-2">
+                                    <span>{entry.value}</span>
+                                    <span className="text-slate-500 text-[10px] w-8 text-right bg-slate-800 px-1 py-0.5 rounded">{percent}%</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }} 
+                />
+                <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 500 }} />
+                {uniqueModes.map((mode, idx) => {
+                  const isLast = idx === uniqueModes.length - 1;
+                  return (
+                    <Bar key={mode} dataKey={mode} stackId="a" name={mode} fill={CHART_COLORS[idx % CHART_COLORS.length]} radius={isLast ? [4,4,0,0] : [0,0,0,0]} barSize={40}>
+                      {isLast && <LabelList dataKey="Total" position="top" style={{ fontSize: '11px', fontWeight: 600, fill: '#475569' }} />}
+                    </Bar>
+                  );
+                })}
               </BarChart>
             </ResponsiveContainer>
           </div>

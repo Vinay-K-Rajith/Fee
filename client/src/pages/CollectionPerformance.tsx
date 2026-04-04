@@ -8,10 +8,11 @@ import {
 import { useDashboard, formatCurrency, formatPercentage } from '@/hooks/use-api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, AlertCircle, Calendar, BarChart3, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, Calendar, BarChart3, Info, Clock, CheckCircle2 } from 'lucide-react';
 import { BRAND_INDIGO, BRAND_GREEN, STATUS, CHART_COLORS, GRID_COLOR, tickStyle } from '@/theme';
 import { SmartTooltip, CustomBarLabel, CustomBarLabelVertical, CustomAreaLabel } from '@/components/charts/chartUtils';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { PieChart, Pie, Cell } from 'recharts';
 
 
 export function CollectionPerformance() {
@@ -36,7 +37,8 @@ export function CollectionPerformance() {
     );
   }
 
-const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyPerformance, previousKpi } = dashboard;
+const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyPerformance, previousKpi, extendedAnalysis } = dashboard;
+const { timelineStats, headwiseFees } = extendedAnalysis || {};
 
   // Calculate YoY percentage change
   const calculateYoy = (current: number, previous: number | undefined) => {
@@ -167,6 +169,16 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
                   { label: 'Defaulters Count', value: kpi.totalStudents ? dashboard.defaulterAnalysis?.activeDefaultersCount ?? 'N/A' : 'N/A' }
                 ]
               },
+              { 
+                label: 'Bus Users', 
+                value: dashboard.extendedAnalysis?.busUsersCount || '0', 
+                color: '#EAB308',
+                yoy: null,
+                tooltipTitle: 'Transport Adoption',
+                tooltipData: [
+                  { label: 'Total Enrolled via Bus', value: dashboard.extendedAnalysis?.busUsersCount || '0' },
+                ]
+              },
             ].map((s: any) => (
               <TooltipProvider key={s.label}>
                 <Tooltip>
@@ -203,6 +215,7 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
           </div>
         </div>
       </Card>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* 1. Monthly Collection by Receipt Date */}
@@ -256,11 +269,11 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
           </div>
         </Card>
 
-        {/* 2. Installment-wise Collection */}
+        {/* 2. Month-wise Fee Settlement */}
         <Card className="bento-card">
           <div className="mb-5 border-b border-slate-100 pb-4">
-            <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Instalment-wise Collection Rate</h3>
-            <p className="text-xs text-slate-500">Expected vs. collected per instalment month — all months with activity shown.</p>
+            <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Month-wise Fee Settlement</h3>
+            <p className="text-xs text-slate-500">Scheduled/Expected amounts mapped to actual realized collections per calendar month.</p>
           </div>
             <div className="h-[500px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -331,7 +344,174 @@ const { kpi, benchmarks, yearlyPerformance, monthlyPerformance, previousMonthlyP
             <div className="flex items-center gap-1.5"><div className="w-4 h-0.5" style={{ background: BRAND_GREEN, opacity: 0.6, borderTop: '2px dashed', borderTopColor: BRAND_GREEN }} /><span className="text-[11px] text-slate-500">Expected</span></div>
           </div>
         </Card>
+
+        {/* 5. Headwise Fee Distribution */}
+        {headwiseFees && (
+          <Card className="bento-card">
+             <div className="mb-5 border-b border-slate-100 pb-4">
+               <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Headwise Fee Realization</h3>
+               <p className="text-xs text-slate-500">Distribution of collected revenue across different fee heads.</p>
+             </div>
+             <div className="flex gap-4 items-center">
+                 <div className="h-[220px] w-1/2">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <PieChart>
+                       <Pie
+                         data={[
+                           { name: 'Tuition/School', value: headwiseFees.tuition },
+                           { name: 'Bus Fee', value: headwiseFees.bus },
+                           { name: 'Admission', value: headwiseFees.admission },
+                           { name: 'Others', value: headwiseFees.others }
+                         ].filter(d => d.value > 0)}
+                         dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}
+                       >
+                         {CHART_COLORS.map((color, index) => <Cell key={index} fill={color} />)}
+                       </Pie>
+                       <RechartsTooltip formatter={(v: any) => formatCurrency(v, true)} contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+                     </PieChart>
+                   </ResponsiveContainer>
+                 </div>
+                 <div className="w-1/2 space-y-3">
+                    {[
+                      { name: 'Tuition/School Fees', value: headwiseFees.tuition, color: CHART_COLORS[0] },
+                      { name: 'Bus Fees', value: headwiseFees.bus, color: CHART_COLORS[1] },
+                      { name: 'Admissions', value: headwiseFees.admission, color: CHART_COLORS[2] },
+                      { name: 'Other Dues', value: headwiseFees.others, color: CHART_COLORS[3] },
+                    ].filter(d => d.value > 0).map(item => (
+                       <div key={item.name} className="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                          <div className="flex gap-2 items-center">
+                             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                             <span className="text-xs font-semibold text-slate-700">{item.name}</span>
+                          </div>
+                          <span className="text-xs font-bold text-slate-900">{formatCurrency(item.value, true)}</span>
+                       </div>
+                    ))}
+                 </div>
+             </div>
+          </Card>
+        )}
       </div>
+
+      {/* Timeline & Late Fee Analytics moved to bottom */}
+      {timelineStats && Array.isArray(timelineStats) && timelineStats.length > 0 && (
+        <div className="mt-8 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            
+            {/* Table spanning 2 cols */}
+            <Card className="bento-card overflow-hidden lg:col-span-2">
+              <div className="mb-5 border-b border-slate-100 pb-4">
+                <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Installment-wise Payment Timeline</h3>
+                <p className="text-xs text-slate-500">A detailed breakdown of payment behaviors mapping the speed of revenue per installment.</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm whitespace-nowrap table-fixed">
+                  <thead>
+                    <tr className="bg-slate-50/70 border-b border-slate-100/80">
+                      <th className="px-5 py-3 font-semibold text-slate-500 uppercase text-[10px] tracking-widest bg-white w-1/4">Installment</th>
+                      <th className="px-5 py-3 font-semibold text-slate-500 uppercase text-[10px] tracking-widest w-1/3">Payment Speed</th>
+                      <th className="px-5 py-3 font-semibold text-slate-500 uppercase text-[10px] tracking-widest text-right w-1/5">Paid Before 15th</th>
+                      <th className="px-5 py-3 font-semibold text-slate-500 uppercase text-[10px] tracking-widest text-right w-1/5">Paid After 15th</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100/80">
+                    {timelineStats.map((row: any, idx: number) => (
+                      <tr key={idx} className="hover:bg-slate-50/30 transition-colors group">
+                        <td className="px-5 py-4 font-bold text-slate-800 border-r border-slate-50 bg-white group-hover:bg-transparent">{row.installment}</td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2 text-slate-800 font-semibold text-[13px]">
+                            <Calendar className="w-3.5 h-3.5 text-indigo-500 border border-indigo-100 rounded-[3px] p-[1px] bg-indigo-50" /> {row.medianPaymentDate} <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded ml-1">Median</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-2 tracking-wide font-medium">
+                            <Clock className="w-3 h-3 text-emerald-500" /> Last Settled: {row.lastPaymentDate}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-emerald-700 font-bold text-[13px] text-right">{formatCurrency(row.paidBefore15th, true)}</td>
+                        <td className="px-5 py-4 text-rose-600 font-bold text-[13px] text-right">{formatCurrency(row.paidAfter15th, true)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+
+            {/* Right Column Stats */}
+            <div className="flex flex-col gap-6 w-full">
+              {/* Late Fee Stats styled */}
+              {dashboard.extendedAnalysis && (
+                <Card className="flex flex-col p-6 rounded-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 text-white shadow-xl shadow-slate-900/20 border-0 outline outline-1 outline-slate-700/50 relative overflow-hidden h-fit">
+                  <div className="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500 opacity-10 rounded-full blur-2xl" />
+                  <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-slate-600 opacity-20 rounded-full blur-xl" />
+                  
+                  <div className="relative mb-8 mt-2">
+                    <h3 className="text-[11px] font-bold text-slate-300 uppercase tracking-[0.2em] opacity-90 drop-shadow-sm flex items-center justify-between">
+                      <span>Penalty Realized</span>
+                      <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                    </h3>
+                    <div className="mt-3 text-5xl font-black text-white tracking-tighter drop-shadow-md">
+                      {formatCurrency(dashboard.extendedAnalysis.totalLateFee, true)}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 relative z-10">
+                    <div className="flex justify-between items-center text-sm border-slate-700/50 bg-black/20 px-4 py-3.5 rounded-lg border border-white/5">
+                      <span className="text-slate-300 font-medium">Levied Count</span>
+                      <span className="font-bold text-white text-base">{dashboard.extendedAnalysis.lateFeeCount}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm border-slate-700/50 bg-black/20 px-4 py-3.5 rounded-lg border border-white/5">
+                      <span className="text-slate-300 font-medium">Max Charge</span>
+                      <span className="font-bold text-rose-400 text-base">₹{dashboard.extendedAnalysis.maxLateFee}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm border-slate-700/50 bg-black/20 px-4 py-3.5 rounded-lg border border-white/5">
+                      <span className="text-slate-300 font-medium">Avg Delay Hit</span>
+                      <span className="font-bold text-orange-400 text-base">₹{Math.floor(dashboard.extendedAnalysis.avgLateFee)}</span>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Admission Fee Stats styled */}
+              {dashboard.extendedAnalysis && (
+                <Card className="flex flex-col p-6 rounded-2xl bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white shadow-xl shadow-indigo-900/20 border-0 outline outline-1 outline-indigo-500/30 relative overflow-hidden h-fit">
+                  <div className="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500 opacity-20 rounded-full blur-2xl" />
+                  <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-blue-600 opacity-20 rounded-full blur-xl" />
+                  
+                  <div className="relative mb-8 mt-2">
+                    <h3 className="text-[11px] font-bold text-indigo-200 uppercase tracking-[0.2em] opacity-90 drop-shadow-sm flex items-center justify-between">
+                      <span>Admission Fees Realized</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    </h3>
+                    <div className="mt-3 text-5xl font-black text-white tracking-tighter drop-shadow-md">
+                      {formatCurrency(dashboard.extendedAnalysis.headwiseFees?.admission || 0, true)}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 relative z-10">
+                    <div className="flex justify-between items-center text-sm border-slate-700/50 bg-black/20 px-4 py-3.5 rounded-lg border border-white/5">
+                      <span className="text-indigo-200 font-medium">Total Admission Count</span>
+                      <span className="font-bold text-white text-base">
+                        {dashboard.admissionTypeAnalysis?.reduce((sum: number, a: any) => sum + (a.studentCount || 0), 0) || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm border-slate-700/50 bg-black/20 px-4 py-3.5 rounded-lg border border-white/5">
+                      <span className="text-indigo-200 font-medium">New Enrolled</span>
+                      <span className="font-bold text-white text-base">
+                        {dashboard.admissionTypeAnalysis?.find((a: any) => String(a.admissionType).toUpperCase() === 'NEW')?.studentCount || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm border-slate-700/50 bg-black/20 px-4 py-3.5 rounded-lg border border-white/5">
+                      <span className="text-indigo-200 font-medium">Old Enrolled (Readmission)</span>
+                      <span className="font-bold text-white text-base">
+                        {dashboard.admissionTypeAnalysis?.find((a: any) => String(a.admissionType).toUpperCase() === 'OLD')?.studentCount || 0}
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

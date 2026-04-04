@@ -3,13 +3,13 @@ import { Card } from '@/components/ui/card';
 import {
   Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, ComposedChart, Area, AreaChart,
-  PieChart, Pie, Cell, Line, BarChart, ReferenceLine,
+  PieChart, Pie, Cell, Line, BarChart, ReferenceLine, Legend
 } from 'recharts';
 import { useDashboard, formatCurrency, formatPercentage } from '@/hooks/use-api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { Calendar, Coins, Percent, FileText, TrendingUp, TrendingDown } from 'lucide-react';
+import { Calendar, Coins, Percent, FileText, TrendingUp, TrendingDown, UserX, UserMinus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BRAND_INDIGO, BRAND_GREEN, STATUS, CHART_COLORS, GRID_COLOR, tickStyle } from '@/theme';
 import { SmartTooltip, CustomBarLabel } from '@/components/charts/chartUtils';
@@ -36,7 +36,7 @@ export function ConcessionsLosses() {
     );
   }
 
-  const { yearlyPerformance, monthlyPerformance, concessionAnalysis, benchmarks, kpi, previousKpi } = dashboard;
+  const { yearlyPerformance, monthlyPerformance, concessionAnalysis, lossAnalysis, benchmarks, kpi, previousKpi } = dashboard;
 
   const calculateYoy = (current: number, previous: number | undefined) => {
     if (!previous) return null;
@@ -112,7 +112,7 @@ export function ConcessionsLosses() {
             icon: <FileText className="w-5 h-5" />, 
             bg: 'bg-emerald-50', 
             iconColor: 'text-emerald-500',
-            yoy: calculateYoy(concessionAnalysis.avgConcessionPerStudent, previousKpi?.avgConcessionPerStudent),
+            yoy: null,
             tooltipTitle: 'Per Student Average',
             tooltipData: [
               { label: 'Total Receiving', value: concessionAnalysis.studentsWithConcession },
@@ -136,6 +136,74 @@ export function ConcessionsLosses() {
                           </span>
                         </div>
                       )}
+                    </div>
+                    <div className={`p-3 rounded-xl shrink-0 ${s.bg} ${s.iconColor}`}>{s.icon}</div>
+                  </div>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="w-56 p-3 bg-slate-900 border-slate-800 shadow-xl" sideOffset={8}>
+                <p className="text-xs font-semibold text-white mb-2 pb-2 border-b border-slate-700/50">
+                  {s.tooltipTitle}
+                </p>
+                <div className="space-y-2">
+                  {s.tooltipData.map((data: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center text-xs">
+                      <span className="text-slate-400">{data.label}</span>
+                      <span className="text-slate-100 font-medium">{data.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { 
+            label: 'Total Realized Loss', 
+            value: formatCurrency(lossAnalysis?.totalLoss || 0, true), 
+            icon: <UserMinus className="w-5 h-5" />, 
+            bg: 'bg-red-50', 
+            iconColor: 'text-red-500',
+            tooltipTitle: 'Total Foregone Revenue',
+            tooltipData: [
+              { label: 'Amount Lost', value: formatCurrency(lossAnalysis?.totalLoss || 0) },
+              { label: 'Total Scheduled', value: formatCurrency(lossAnalysis?.totalPotentialDroppedRevenue || 0) }
+            ]
+          },
+          { 
+            label: 'Loss by T.C.', 
+            value: formatCurrency(lossAnalysis?.lossByTC || 0, true), 
+            icon: <FileText className="w-5 h-5" />, 
+            bg: 'bg-rose-50', 
+            iconColor: 'text-rose-500',
+            tooltipTitle: 'Transfer Certificate Output',
+            tooltipData: [
+              { label: 'Lost Revenue', value: formatCurrency(lossAnalysis?.lossByTC || 0) },
+            ]
+          },
+          { 
+            label: 'Loss by Dropout', 
+            value: formatCurrency(lossAnalysis?.lossByDropout || 0, true), 
+            icon: <UserX className="w-5 h-5" />, 
+            bg: 'bg-orange-50', 
+            iconColor: 'text-orange-500',
+            tooltipTitle: 'Student Dropouts',
+            tooltipData: [
+              { label: 'Lost Revenue', value: formatCurrency(lossAnalysis?.lossByDropout || 0) },
+            ]
+          },
+        ].map((s: any) => (
+          <TooltipProvider key={s.label}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Card className="bento-card cursor-help">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[#64748B] text-[11px] uppercase font-semibold tracking-[0.1em] mb-2">{s.label}</p>
+                      <p className="text-2xl font-semibold tracking-tight text-slate-900 mb-1">{s.value}</p>
                     </div>
                     <div className={`p-3 rounded-xl shrink-0 ${s.bg} ${s.iconColor}`}>{s.icon}</div>
                   </div>
@@ -214,15 +282,38 @@ export function ConcessionsLosses() {
           </div>
         </Card>
 
+        {/* Monthly Loss Map — adjacent to Concession Beneficiaries */}
+        {lossAnalysis && lossAnalysis.monthlyLoss.length > 0 && (
+          <Card className="bento-card">
+            <div className="mb-5 border-b border-slate-100 pb-4">
+              <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Monthly Loss Mapping</h3>
+              <p className="text-xs text-slate-500">Scheduled revenue missed each month due to Transfer Certificates (TC) or dropouts.</p>
+            </div>
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={lossAnalysis.monthlyLoss} margin={{ top: 20, right: 10, bottom: 20, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
+                  <XAxis dataKey="month" tick={tickStyle} axisLine={false} tickLine={false} angle={-30} textAnchor="end" height={50} />
+                  <YAxis tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} />
+                  <RechartsTooltip content={<SmartTooltip />} />
+                  <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 500 }} />
+                  <Bar dataKey="dropoutLoss" stackId="a" name="Loss by Dropout" fill="#F97316" radius={[0, 0, 0, 0]} barSize={24} />
+                  <Bar dataKey="tcLoss" stackId="a" name="Loss by T.C." fill="#E11D48" radius={[6, 6, 0, 0]} barSize={24} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        )}
+
         {/* Concession Type Breakdown */}
-        <Card className="bento-card lg:col-span-2">
+        <Card className="bento-card">
           <div className="mb-5 border-b border-slate-100 pb-4">
             <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Concession Beneficiaries by Type</h3>
             <p className="text-xs text-slate-500">Concession types and the default rate among beneficiaries. Target: &lt;10% default rate.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Donut */}
-            <div className="h-[300px]">
+            <div className="h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -231,8 +322,8 @@ export function ConcessionsLosses() {
                     nameKey="concessionType"
                     cx="50%"
                     cy="50%"
-                    outerRadius={110}
-                    innerRadius={60}
+                    outerRadius={100}
+                    innerRadius={55}
                     paddingAngle={2}
                     label={({ concessionType, percent }) => `${concessionType}: ${(percent * 100).toFixed(0)}%`}
                   >
@@ -248,9 +339,9 @@ export function ConcessionsLosses() {
               </ResponsiveContainer>
             </div>
             {/* Type list */}
-            <div className="flex flex-col justify-center space-y-3">
+            <div className="flex flex-col justify-center space-y-2.5">
               {concessionAnalysis.concessionTypeWise.map((type: any, idx: number) => (
-                <div key={type.concessionType} className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                <div key={type.concessionType} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
                     <div>
