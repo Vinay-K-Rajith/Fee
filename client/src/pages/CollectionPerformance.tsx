@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import {
   Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, ComposedChart, ReferenceLine,
-  Area, AreaChart, Legend,
+  Area, AreaChart, Legend, PieChart, Pie, Cell,
 } from 'recharts';
 import { useDashboard, formatCurrency, formatPercentage } from '@/hooks/use-api';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,7 +12,6 @@ import { TrendingUp, TrendingDown, AlertCircle, Calendar, BarChart3, Info, Clock
 import { BRAND_INDIGO, BRAND_GREEN, STATUS, CHART_COLORS, GRID_COLOR, tickStyle } from '@/theme';
 import { SmartTooltip, CustomBarLabel, CustomBarLabelVertical, CustomAreaLabel } from '@/components/charts/chartUtils';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { PieChart, Pie, Cell } from 'recharts';
 
 
 export function CollectionPerformance() {
