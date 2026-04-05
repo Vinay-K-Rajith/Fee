@@ -1079,43 +1079,89 @@ class DataLoader {
     });
     const reAdmissions = reAdmissionsSet.size; 
 
-    // Payment Breakdown for Mock Delay Time Period analysis (preserving counts but breaking down by mode)
-    const paymentModeCounts: Record<string, number> = {};
-    let totalPaidTrans = 0;
-    allCollections.forEach(r => {
-       if(r.totalPaid > 0) {
-           const mode = r.receiptMode || 'Unknown';
-           paymentModeCounts[mode] = (paymentModeCounts[mode] || 0) + 1;
-           totalPaidTrans++;
-       }
-    });
-
-    const createBreakdown = (bucketTotal: number) => {
-        const breakdown: any[] = [];
-        let remaining = bucketTotal;
-        Object.entries(paymentModeCounts).forEach(([mode, count], idx, arr) => {
-            if (idx === arr.length - 1) {
-                 breakdown.push({ mode, count: remaining });
-            } else {
-                 const part = Math.round(bucketTotal * (count / (totalPaidTrans || 1)));
-                 breakdown.push({ mode, count: part });
-                 remaining -= part;
-            }
-        });
-        return breakdown.filter((b: any) => b.count > 0).sort((a: any, b: any) => b.count - a.count);
+    // Actual delay buckets based on due date (15th installment month) vs receipt date.
+    const monthNameToNumInst: Record<string, number> = {
+      APR: 3, MAY: 4, JUN: 5, JUL: 6, AUG: 7,
+      SEP: 8, OCT: 9, NOV: 10, DEC: 11, JAN: 0, FEB: 1, MAR: 2,
+      APRIL: 3, JUNE: 5, JULY: 6, AUGUST: 7,
+      SEPTEMBER: 8, OCTOBER: 9, NOVEMBER: 10, DECEMBER: 11,
+      JANUARY: 0, FEBRUARY: 1, MARCH: 2,
     };
 
-    const bucketC1 = Math.floor(allCollections.length * 0.45);
-    const bucketC2 = Math.floor(allCollections.length * 0.3);
-    const bucketC3 = Math.floor(allCollections.length * 0.15);
-    const bucketC4 = Math.floor(allCollections.length * 0.1);
+    const getInstallmentMonthNum = (installment: any): number | null => {
+      const raw = String(installment || '').toUpperCase().trim();
+      if (!raw) return null;
+
+      if (monthNameToNumInst[raw] !== undefined) return monthNameToNumInst[raw];
+
+      const matched = Object.keys(monthNameToNumInst).find(k => raw.includes(k));
+      if (!matched) return null;
+      return monthNameToNumInst[matched];
+    };
+
+    const getAcademicStartYear = (year: any): number | null => {
+      const m = String(year || '').match(/^(\d{4})/);
+      return m ? Number(m[1]) : null;
+    };
+
+    const bucketStats: Record<string, { count: number; modeCounts: Record<string, number> }> = {
+      '1_week': { count: 0, modeCounts: {} },
+      '2_weeks': { count: 0, modeCounts: {} },
+      '1_month': { count: 0, modeCounts: {} },
+      'more_than_1_month': { count: 0, modeCounts: {} },
+    };
+
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    allCollections.forEach(r => {
+      if (Number(r.totalPaid || 0) <= 0) return;
+
+      const receiptTs = parseExcelOrDateStr(r.receiptDate);
+      if (receiptTs <= 0) return;
+
+      const instMonthNum = getInstallmentMonthNum(r.installment);
+      const academicStartYear = getAcademicStartYear(r.year);
+
+      let dueDateTs = 0;
+      if (instMonthNum !== null && academicStartYear !== null) {
+        const dueYear = instMonthNum >= 3 ? academicStartYear : academicStartYear + 1;
+        dueDateTs = new Date(dueYear, instMonthNum, 15).setHours(0, 0, 0, 0);
+      } else {
+        dueDateTs = parseExcelOrDateStr(r.dueDate);
+      }
+
+      if (dueDateTs <= 0) return;
+
+      const delayDays = Math.max(0, Math.floor((receiptTs - dueDateTs) / DAY_MS));
+
+      let bucketId = 'more_than_1_month';
+      if (delayDays < 7) bucketId = '1_week';
+      else if (delayDays < 14) bucketId = '2_weeks';
+      else if (delayDays < 30) bucketId = '1_month';
+
+      const mode = String(r.receiptMode || 'Unknown').trim() || 'Unknown';
+
+      bucketStats[bucketId].count += 1;
+      bucketStats[bucketId].modeCounts[mode] = (bucketStats[bucketId].modeCounts[mode] || 0) + 1;
+    });
 
     const delayTimeBuckets = [
-      { id: '1_week', label: '< 1 Week', count: bucketC1, breakdown: createBreakdown(bucketC1) },
-      { id: '2_weeks', label: '1 - 2 Weeks', count: bucketC2, breakdown: createBreakdown(bucketC2) },
-      { id: '1_month', label: '2 - 4 Weeks', count: bucketC3, breakdown: createBreakdown(bucketC3) },
-      { id: 'more_than_1_month', label: '> 1 Month', count: bucketC4, breakdown: createBreakdown(bucketC4) }
-    ];
+      { id: '1_week', label: '< 1 Week' },
+      { id: '2_weeks', label: '1 - 2 Weeks' },
+      { id: '1_month', label: '2 - 4 Weeks' },
+      { id: 'more_than_1_month', label: '> 1 Month' }
+    ].map(bucket => {
+      const stats = bucketStats[bucket.id];
+      const breakdown = Object.entries(stats.modeCounts)
+        .map(([mode, count]) => ({ mode, count }))
+        .sort((a, b) => b.count - a.count);
+
+      return {
+        ...bucket,
+        count: stats.count,
+        breakdown,
+      };
+    });
 
     // Timelines per Installment
     const paidRecords = allCollections.filter(r => r.totalPaid > 0 && r.receiptDate && r.installment);
@@ -1136,7 +1182,7 @@ class DataLoader {
     // If we assume a generic date, it's easier to just compare day of the month if year logic is tricky.
     // But since the receipt date has a year, let's use the receipt date's year but the installment's month.
     // Wait, the deadline is ALWAYS the 15th of the installment month!
-    const monthNameToNumInst: Record<string, number> = {
+    const monthNameToNumInstTimeline: Record<string, number> = {
       'APR': 3, 'MAY': 4, 'JUN': 5, 'JUL': 6, 'AUG': 7, 
       'SEP': 8, 'OCT': 9, 'NOV': 10, 'DEC': 11, 'JAN': 0, 'FEB': 1, 'MAR': 2
     };
@@ -1161,22 +1207,14 @@ class DataLoader {
                 // It is simpler: did they pay on or before the 15th day of *any* month for this installment?
                 // Actually, due date is always 15th of the specific installment month.
                 // Let's assume the due date year is the receipt year (or previous year if they paid really late).
-                const targetMonth = monthNameToNumInst[inst];
-                let targetYear = d.getFullYear();
-                
-                // standardizing deadline
-                let isLate = false;
-                if (d.getMonth() === targetMonth) {
-                    if (d.getDate() > 15) isLate = true;
-                } else {
-                    // if paid in a later month, it's late.
-                    // month logic: APR is 3 ... MAR is 2.
-                    // wrap around logic
-                    const orderValue = (m: number) => m >= 3 ? m - 3 : m + 9;
-                    if (orderValue(d.getMonth()) > orderValue(targetMonth)) {
-                        isLate = true;
-                    }
-                }
+                const targetMonth = monthNameToNumInstTimeline[inst];
+                // Determine the correct academic year the due date falls in:
+                // Academic year starts in April. Months APR-DEC belong to receipt year; JAN-MAR to next year.
+                const academicYearStart = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
+                const targetYear = targetMonth >= 3 ? academicYearStart : academicYearStart + 1;
+                const dueDateTs = new Date(targetYear, targetMonth, 15).setHours(0, 0, 0, 0);
+
+                const isLate = ts > dueDateTs;
 
                 if (!isLate) before15th += r.totalPaid;
                 else after15th += r.totalPaid;
@@ -1277,10 +1315,18 @@ class DataLoader {
       'DEC': 'Dec', 'JAN': 'Jan', 'FEB': 'Feb', 'MAR': 'Mar'
     };
 
+    // Pre-index collections by admNo for O(1) lookup (fix for O(n²) filter inside loop)
+    const collectionsByAdmNo = new Map<string, typeof allCollections>();
+    allCollections.forEach(r => {
+        const key = String(r.admNo);
+        if (!collectionsByAdmNo.has(key)) collectionsByAdmNo.set(key, []);
+        collectionsByAdmNo.get(key)!.push(r);
+    });
+
     students.forEach(student => {
        const status = student.currentStatus;
        if (status === 'TC' || status === 'Dropout') {
-           const stRecords = allCollections.filter(r => String(r.admNo) === student.admissionNo);
+           const stRecords = collectionsByAdmNo.get(student.admissionNo) || [];
            
            stRecords.forEach(r => {
                let unpaid = r.defaulterTotal;

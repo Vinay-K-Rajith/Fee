@@ -257,45 +257,55 @@ export function registerRoutes(
   // ========================================
   // AI Dashboard Insights Endpoint
   // ========================================
-  // Cache insights so we don't hit Gemini on every page load
   let insightsCache: { ts: number; data: any } | null = null;
+  let insightsInflight: Promise<void> | null = null;
   const INSIGHTS_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
   app.get("/api/dashboard-insights", async (_req, res) => {
     try {
+      // Serve from cache if still fresh
       if (insightsCache && Date.now() - insightsCache.ts < INSIGHTS_TTL_MS) {
         return res.json(insightsCache.data);
       }
 
-      // Build a tight data snapshot covering all 3 years for comparison
-      const years = ['2023-24', '2024-25', '2025-26'];
-      const snapshot = years.map(y => {
-        const kpi = dataLoader.getKPISummary(y);
-        const ext = dataLoader.getExtendedAnalysis(y);
-        const con = dataLoader.getConcessionAnalysis(y);
-        const def = dataLoader.getDefaulterAnalysis(y);
-        const loss = dataLoader.getLossAnalysis(y);
-        return {
-          year: y,
-          totalExpected: kpi.totalExpected,
-          totalCollected: kpi.totalFeeCollection,
-          collectionRate: kpi.collectionRate,
-          studentCount: kpi.totalStudents ?? null,
-          defaulterCount: kpi.activeDefaultersCount,
-          defaulterRate: kpi.defaulterRate,
-          concessionTotal: con.totalConcession,
-          concessionRate: con.concessionRate,
-          studentsWithConcession: con.studentsWithConcession,
-          lossTotal: loss?.totalLoss ?? 0,
-          lossByTC: loss?.lossByTC ?? 0,
-          lossByDropout: loss?.lossByDropout ?? 0,
-          digitalAdoption: kpi.digitalAdoption,
-          outstanding: ext?.outstandingPercent ?? null,
-          lateFeeTotal: ext?.totalLateFee ?? 0,
-        };
-      });
+      // Validate API key up-front before any work
+      const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
+      if (!geminiApiKey) {
+        console.error("[dashboard-insights] GEMINI_API_KEY is not configured");
+        return res.status(503).json({ error: "AI insights service is not configured" });
+      }
 
-      const prompt = `You are a school fee analytics expert. Below is 3 years of fee data (2023-24, 2024-25, 2025-26):
+      // Deduplicate concurrent requests — only one Gemini call runs at a time
+      if (!insightsInflight) {
+        insightsInflight = (async () => {
+          try {
+            const years = ['2023-24', '2024-25', '2025-26'];
+            const snapshot = years.map(y => {
+              const kpi = dataLoader.getKPISummary(y);
+              const ext = dataLoader.getExtendedAnalysis(y);
+              const con = dataLoader.getConcessionAnalysis(y);
+              const loss = dataLoader.getLossAnalysis(y);
+              return {
+                year: y,
+                totalExpected: kpi.totalExpected,
+                totalCollected: kpi.totalFeeCollection,
+                collectionRate: kpi.collectionRate,
+                studentCount: kpi.totalStudents ?? null,
+                defaulterCount: kpi.activeDefaultersCount,
+                defaulterRate: kpi.defaulterRate,
+                concessionTotal: con.totalConcession,
+                concessionRate: con.concessionRate,
+                studentsWithConcession: con.studentsWithConcession,
+                lossTotal: loss?.totalLoss ?? 0,
+                lossByTC: loss?.lossByTC ?? 0,
+                lossByDropout: loss?.lossByDropout ?? 0,
+                digitalAdoption: kpi.digitalAdoption,
+                outstanding: ext?.outstandingPercent ?? null,
+                lateFeeTotal: ext?.totalLateFee ?? 0,
+              };
+            });
+
+            const prompt = `You are a school fee analytics expert. Below is 3 years of fee data (2023-24, 2024-25, 2025-26):
 
 ${JSON.stringify(snapshot, null, 2)}
 
@@ -318,18 +328,26 @@ Rules:
 - Keep each text under 120 characters
 - Return only valid JSON, no markdown`;
 
-      const { GoogleGenerativeAI } = await import("@google/generative-ai");
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-      const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
-      const result = await model.generateContent(prompt);
-      const raw = result.response.text().trim();
+            const { GoogleGenerativeAI } = await import("@google/generative-ai");
+            const genAI = new GoogleGenerativeAI(geminiApiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
+            const result = await model.generateContent(prompt);
+            const raw = result.response.text().trim();
 
-      // Extract JSON safely
-      const jsonMatch = raw.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error("No JSON array in Gemini response");
-      const insights = JSON.parse(jsonMatch[0]);
+            const jsonMatch = raw.match(/\[[\s\S]*\]/);
+            if (!jsonMatch) throw new Error("No JSON array in Gemini response");
+            const insights = JSON.parse(jsonMatch[0]);
 
-      insightsCache = { ts: Date.now(), data: { insights, generatedAt: new Date().toISOString() } };
+            insightsCache = { ts: Date.now(), data: { insights, generatedAt: new Date().toISOString() } };
+          } finally {
+            insightsInflight = null;
+          }
+        })();
+      }
+
+      await insightsInflight;
+
+      if (!insightsCache) throw new Error("Insights generation failed silently");
       res.json(insightsCache.data);
     } catch (error) {
       console.error("[dashboard-insights] Error:", error);
