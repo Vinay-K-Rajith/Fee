@@ -229,15 +229,15 @@ export function ConcessionsLosses() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Concessions Trend — Actual vs Projected */}
-        <Card className="bento-card">
-          <div className="mb-5 border-b border-slate-100 pb-4">
+        <Card className="bento-card flex flex-col">
+          <div className="mb-4 border-b border-slate-100 pb-3">
             <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Concessions Trend</h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-sm text-slate-600 leading-relaxed">
               Solid = actual data · Dashed amber = linear regression projection (not real data).
               Benchmark: cap concessions at {benchmarks.concessionRateBenchmark}% of total collection.
             </p>
           </div>
-          <div className="h-[280px]">
+          <div className="h-[300px] flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={concessionChartData} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
                 <defs>
@@ -264,12 +264,12 @@ export function ConcessionsLosses() {
         </Card>
 
         {/* Month-on-Month Concessions */}
-        <Card className="bento-card">
-          <div className="mb-5 border-b border-slate-100 pb-4">
+        <Card className="bento-card flex flex-col">
+          <div className="mb-4 border-b border-slate-100 pb-3">
             <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Month-on-Month Concessions</h3>
-            <p className="text-xs text-slate-500">Concessions approved each month. Target: stay within 2% of monthly collection.</p>
+            <p className="text-sm text-slate-600">Concessions approved each month. Target: stay within 2% of monthly collection.</p>
           </div>
-          <div className="h-[280px]">
+          <div className="h-[300px] flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyPerformance} margin={{ top: 20, right: 10, bottom: 20, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
@@ -284,21 +284,21 @@ export function ConcessionsLosses() {
 
         {/* Monthly Loss Map — adjacent to Concession Beneficiaries */}
         {lossAnalysis && lossAnalysis.monthlyLoss.length > 0 && (
-          <Card className="bento-card">
-            <div className="mb-5 border-b border-slate-100 pb-4">
+          <Card className="bento-card flex flex-col">
+            <div className="mb-4 border-b border-slate-100 pb-3">
               <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Monthly Loss Mapping</h3>
-              <p className="text-xs text-slate-500">Scheduled revenue missed each month due to Transfer Certificates (TC) or dropouts.</p>
+              <p className="text-sm text-slate-600">Scheduled revenue missed each month due to Transfer Certificates (TC) or dropouts.</p>
             </div>
-            <div className="h-[280px]">
+            <div className="h-[300px] flex-1">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={lossAnalysis.monthlyLoss} margin={{ top: 20, right: 10, bottom: 20, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
-                  <XAxis dataKey="month" tick={tickStyle} axisLine={false} tickLine={false} angle={-30} textAnchor="end" height={50} />
-                  <YAxis tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} />
-                  <RechartsTooltip content={<SmartTooltip />} />
-                  <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 500 }} />
-                  <Bar dataKey="dropoutLoss" stackId="a" name="Loss by Dropout" fill="#F97316" radius={[0, 0, 0, 0]} barSize={24} />
-                  <Bar dataKey="tcLoss" stackId="a" name="Loss by T.C." fill="#E11D48" radius={[6, 6, 0, 0]} barSize={24} />
+              <BarChart data={lossAnalysis.monthlyLoss} margin={{ top: 10, right: 10, bottom: 50, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
+                <XAxis dataKey="month" tick={tickStyle} axisLine={false} tickLine={false} angle={-30} textAnchor="end" height={50} />
+                <YAxis tick={tickStyle} tickFormatter={(v) => formatCurrency(v, true)} axisLine={false} tickLine={false} />
+                <RechartsTooltip content={<SmartTooltip />} />
+                <Legend verticalAlign="bottom" height={24} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 500, paddingTop: '12px' }} />
+                <Bar dataKey="dropoutLoss" stackId="a" name="Loss by Dropout" fill="#F97316" radius={[0, 0, 0, 0]} barSize={32} />
+                <Bar dataKey="tcLoss" stackId="a" name="Loss by T.C." fill="#E11D48" radius={[6, 6, 0, 0]} barSize={32} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -306,26 +306,25 @@ export function ConcessionsLosses() {
         )}
 
         {/* Concession Type Breakdown */}
-        <Card className="bento-card">
-          <div className="mb-5 border-b border-slate-100 pb-4">
+        <Card className="bento-card flex flex-col">
+          <div className="mb-4 border-b border-slate-100 pb-3">
             <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Concession Beneficiaries by Type</h3>
-            <p className="text-xs text-slate-500">Concession types and the default rate among beneficiaries. Target: &lt;10% default rate.</p>
+            <p className="text-sm text-slate-600">Distribution of concession types and associated default rates. Target: &lt;10% default rate.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Donut */}
-            <div className="h-[260px]">
+          <div className="flex gap-8 flex-1">
+            {/* Donut — left, compact */}
+            <div className="w-56 h-56 flex items-center justify-center flex-shrink-0">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                   <Pie
                     data={concessionAnalysis.concessionTypeWise}
                     dataKey="studentCount"
                     nameKey="concessionType"
                     cx="50%"
                     cy="50%"
-                    outerRadius={100}
-                    innerRadius={55}
+                    outerRadius={75}
+                    innerRadius={52}
                     paddingAngle={2}
-                    label={({ concessionType, percent }) => `${concessionType}: ${(percent * 100).toFixed(0)}%`}
                   >
                     {concessionAnalysis.concessionTypeWise.map((_: any, index: number) => (
                       <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -338,23 +337,37 @@ export function ConcessionsLosses() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            {/* Type list */}
-            <div className="flex flex-col justify-center space-y-2.5">
+            {/* Type list — right, improved layout */}
+            <div className="flex-1 space-y-1.5 overflow-y-auto max-h-56">
               {concessionAnalysis.concessionTypeWise.map((type: any, idx: number) => (
-                <div key={type.concessionType} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">{type.concessionType}</p>
-                      <p className="text-xs text-slate-500">{type.studentCount} students · {formatCurrency(type.totalAmount, true)}</p>
+                <div key={type.concessionType} className="flex items-stretch gap-3 p-2.5 bg-gradient-to-br from-slate-50 to-slate-50 rounded-lg border border-slate-100 hover:border-slate-300 transition-colors hover:shadow-sm">
+                  {/* Color indicator */}
+                  <div className="w-1 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
+                  
+                  {/* Main content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 mb-1.5">
+                      <h4 className="text-sm font-semibold text-slate-900">{type.concessionType}</h4>
+                      <Badge
+                        variant="secondary"
+                        className={`shrink-0 text-[10px] py-0.5 px-2 h-fit font-medium ${type.defaulterRate > 10 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}
+                      >
+                        {formatPercentage(type.defaulterRate)} default
+                      </Badge>
+                    </div>
+                    
+                    {/* Stats row */}
+                    <div className="grid grid-cols-2 gap-3 text-[11px]">
+                      <div>
+                        <span className="text-slate-500 block mb-0.5">Students</span>
+                        <span className="text-slate-900 font-semibold">{type.studentCount}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block mb-0.5">Total Concession</span>
+                        <span className="text-slate-900 font-semibold">{formatCurrency(type.totalAmount, true)}</span>
+                      </div>
                     </div>
                   </div>
-                  <Badge
-                    variant="secondary"
-                    className={type.defaulterRate > 10 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}
-                  >
-                    {formatPercentage(type.defaulterRate)} defaults
-                  </Badge>
                 </div>
               ))}
             </div>

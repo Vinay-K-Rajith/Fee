@@ -18,7 +18,7 @@ const genAI = new GoogleGenerativeAI(apiKey || "");
 // 1. Data Chart Tool Schema
 const generateChartTool: FunctionDeclaration = {
   name: "generate_chart",
-  description: "Generates data for visualizing a chart (line or bar chart) when the user asks for a visual representation or trend chart. Use vibrant, contrasting colors for better visualization.",
+  description: "Generates data for visualizing a chart (line, bar, or pie chart) when the user asks for a visual representation or trend chart. Use vibrant, contrasting colors for better visualization.",
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
@@ -212,13 +212,22 @@ You MUST format your response using **rich Markdown**:
 - End with a clear **## Recommendations** section with actionable items
 - Be conversational yet professional
 - If trends exist, explain them with year-on-year comparisons
-- If problems exist, suggest concrete solutions`;
+- If problems exist, suggest concrete solutions
+
+═══════════════════════════════════════════════
+CRITICAL: CHART DATA HANDLING
+═══════════════════════════════════════════════
+**IMPORTANT**: When generating charts:
+1. Use the generate_chart tool to pass chart data — DO NOT include raw chart JSON or code blocks in your text response
+2. Your text should contain ONLY: analysis, context, and insights about the data
+3. Never paste chart definitions, JSON objects, or raw data structures into the response text
+4. Let the tool call handle 100% of the chart visualization — just provide your narrative analysis`;
 
     const userPrompt = `User Query: ${userQuery}\n\nRespond with a detailed, well-structured Markdown analysis. Use tables, bold metrics, and clear sections. If requested or highly relevant, generate a chart (bar, line, or pie) using the tool. Also, summarize the data efficiently.`;
 
     // 2. Initialize the model INSIDE the function so it gets the dynamic system context
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-flash-lite",
       systemInstruction: {
         role: "system",
         parts: [{ text: systemPrompt }]
