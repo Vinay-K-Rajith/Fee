@@ -237,7 +237,7 @@ export function ConcessionsLosses() {
               Benchmark: cap concessions at {benchmarks.concessionRateBenchmark}% of total collection.
             </p>
           </div>
-          <div className="h-[300px] flex-1">
+          <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={concessionChartData} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
                 <defs>
@@ -269,7 +269,7 @@ export function ConcessionsLosses() {
             <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Month-on-Month Concessions</h3>
             <p className="text-sm text-slate-600">Concessions approved each month. Target: stay within 2% of monthly collection.</p>
           </div>
-          <div className="h-[300px] flex-1">
+          <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyPerformance} margin={{ top: 20, right: 10, bottom: 20, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
@@ -289,7 +289,7 @@ export function ConcessionsLosses() {
               <h3 className="text-[15px] font-semibold text-slate-800 mb-1">Monthly Loss Mapping</h3>
               <p className="text-sm text-slate-600">Scheduled revenue missed each month due to Transfer Certificates (TC) or dropouts.</p>
             </div>
-            <div className="h-[300px] flex-1">
+            <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
               <BarChart data={lossAnalysis.monthlyLoss} margin={{ top: 10, right: 10, bottom: 50, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_COLOR} />
